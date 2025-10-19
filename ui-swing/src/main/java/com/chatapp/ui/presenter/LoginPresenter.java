@@ -62,17 +62,16 @@ public class LoginPresenter {
             if (user != null) {
                 loginView.showSuccess("Login successful!");
                 openMainView();
-            }
-            // This else block is now effectively handled by the ApiException catch block
-            // This else block is now effectively handled by the ApiException catch block
-            // for specific error messages. We can keep a generic message here as a fallback.
-            else {
+            } else {
                 loginView.showError("Login failed due to an unknown error.");
             }
         } catch (ApiException ex) {
             String friendlyMessage = ErrorMessageTranslator.translate(ex);
             loginView.showError(friendlyMessage);
-            ex.printStackTrace();
+           // ex.printStackTrace();
+        } catch (Exception ex) {
+            loginView.showError("Ismeretlen hiba történt, próbáld újra később!");
+         //   ex.printStackTrace();
         } finally {
             // Reset UI
             loginView.setEnabled(true);
@@ -98,6 +97,9 @@ public class LoginPresenter {
         } catch (ApiException ex) {
             String friendlyMessage = ErrorMessageTranslator.translate(ex);
             loginView.showError(friendlyMessage);
+            ex.printStackTrace();
+        } catch (Exception ex) {
+            loginView.showError("Ismeretlen hiba történt, próbáld újra később!");
             ex.printStackTrace();
         } finally {
             // Reset UI
