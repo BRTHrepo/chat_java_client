@@ -81,10 +81,13 @@ A szerver a `localhost:8080` címen fog futni.
 ### Authentikáció
 
 #### Regisztráció / Bejelentkezés
-```
+```http
 POST /chat/index.php/api/registerLogin
 Content-Type: application/json
+```
 
+**Kérés:**
+```json
 {
     "email": "user@example.com",
     "password": "password123",
@@ -92,7 +95,7 @@ Content-Type: application/json
 }
 ```
 
-Válasz (sikeres bejelentkezés):
+**Sikeres válasz (200 OK):**
 ```json
 {
     "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
@@ -102,29 +105,57 @@ Válasz (sikeres bejelentkezés):
 }
 ```
 
+**Hibás válaszok:**
+- **400 Bad Request** (Hiányzó email/jelszó):
+  ```json
+  {"error": "Email and password are required"}
+  ```
+- **400 Bad Request** (Regisztráció esetén hiányzó nickname):
+  ```json
+  {"error": "Nickname is required for registration"}
+  ```
+- **401 Unauthorized** (Érvénytelen hitelesítési adatok):
+  ```json
+  {"error": "Invalid credentials"}
+  ```
+- **500 Internal Server Error** (Regisztráció sikertelen):
+  ```json
+  {"error": "Registration failed"}
+  ```
+
 #### Jelszóemlékeztető
-```
+```http
 POST /chat/index.php/api/forgotPassword
 Content-Type: application/json
+```
 
+**Kérés:**
+```json
 {
     "email": "user@example.com"
 }
 ```
 
-Válasz:
+**Sikeres válasz (200 OK):**
 ```json
-{
-    "message": "If email exists, reset link has been sent"
-}
+{"message": "If email exists, reset link has been sent"}
 ```
 
+**Hibás válaszok:**
+- **400 Bad Request** (Hiányzó email):
+  ```json
+  {"error": "Email is required"}
+  ```
+
 #### Adatok módosítása
-```
+```http
 POST /chat/index.php/api/changeCredentials
 Authorization: Bearer <token>
 Content-Type: application/json
+```
 
+**Kérés:**
+```json
 {
     "nickname": "new_nickname",
     "email": "new_email@example.com",
@@ -132,20 +163,47 @@ Content-Type: application/json
 }
 ```
 
+**Sikeres válasz (200 OK):**
+```json
+{
+    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "user_id": 1,
+    "nickname": "new_nickname",
+    "email": "new_email@example.com"
+}
+```
+
+**Hibás válaszok:**
+- **400 Bad Request** (Érvénytelen email):
+  ```json
+  {"error": "Email already exists"}
+  ```
+- **404 Not Found** (Felhasználó nem található):
+  ```json
+  {"error": "User not found"}
+  ```
+- **500 Internal Server Error** (Adatmódosítás sikertelen):
+  ```json
+  {"error": "Update failed"}
+  ```
+
 ### Barátkezelés
 
 #### Barát hozzáadása
-```
+```http
 POST /chat/index.php/api/addFriend
 Authorization: Bearer <token>
 Content-Type: application/json
+```
 
+**Kérés:**
+```json
 {
     "nickname": "friend_nickname"
 }
 ```
 
-Válasz:
+**Sikeres válasz (200 OK):**
 ```json
 {
     "message": "Friend request sent",
@@ -154,32 +212,65 @@ Válasz:
 }
 ```
 
+**Hibás válaszok:**
+- **400 Bad Request** (Hiányzó nickname):
+  ```json
+  {"error": "Nickname is required"}
+  ```
+- **404 Not Found** (Felhasználó nem található):
+  ```json
+  {"error": "User not found"}
+  ```
+- **400 Bad Request** (Már barátok vagyunk):
+  ```json
+  {"error": "Already friends"}
+  ```
+- **400 Bad Request** (Már elküldtük a kérést):
+  ```json
+  {"error": "Friend request already sent"}
+  ```
+
 #### Barát törlése / Kérés elutasítása
-```
+```http
 POST /chat/index.php/api/deleteFriend
 Authorization: Bearer <token>
 Content-Type: application/json
+```
 
+**Kérés:**
+```json
 {
     "friend_id": 2,
     "action": "delete" // vagy "decline"
 }
 ```
 
-Válasz:
+**Sikeres válasz (200 OK):**
 ```json
-{
-    "message": "Friend removed successfully"
-}
+{"message": "Friend removed successfully"}
 ```
 
+**Hibás válaszok:**
+- **400 Bad Request** (Hiányzó friend_id):
+  ```json
+  {"error": "Friend ID is required"}
+  ```
+- **404 Not Found** (Barát nem található):
+  ```json
+  {"error": "Friend not found"}
+  ```
+- **400 Bad Request** (Kérés elutasítása esetén nem létező kérés):
+  ```json
+  {"error": "Friend request declined"}
+  ```
+
 #### Barátok listája
-```
+```http
 POST /chat/index.php/api/getFriends
 Authorization: Bearer <token>
 ```
 
-Válasz:
+**Sikeres válasz (200 OK):**
 ```json
 {
     "friends": [
@@ -194,12 +285,12 @@ Válasz:
 ```
 
 #### Barátkérések listája
-```
+```http
 POST /chat/index.php/api/getFriendRequests
 Authorization: Bearer <token>
 ```
 
-Válasz:
+**Sikeres válasz (200 OK):**
 ```json
 {
     "requests": [
@@ -217,11 +308,14 @@ Válasz:
 ### Üzenetkezelés
 
 #### Üzenet küldése
-```
+```http
 POST /chat/index.php/api/sendMessage
 Authorization: Bearer <token>
 Content-Type: application/json
+```
 
+**Kérés (szöveg):**
+```json
 {
     "receiver_id": 2,
     "msg_type": "text",
@@ -229,18 +323,21 @@ Content-Type: application/json
 }
 ```
 
-Médiaüzenet küldése:
-```
+**Kérés (média):**
+```http
 POST /chat/index.php/api/sendMessage
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
+```
 
+**Form adatok:**
+```
 receiver_id: 2
 msg_type: image
 media: <file>
 ```
 
-Válasz:
+**Sikeres válasz (200 OK):**
 ```json
 {
     "message_id": 1,
@@ -250,12 +347,45 @@ Válasz:
 }
 ```
 
+**Hibás válaszok:**
+- **400 Bad Request** (Hiányzó receiver_id/msg_type):
+  ```json
+  {"error": "Receiver ID and message type are required"}
+  ```
+- **404 Not Found** (Nem létező címzett):
+  ```json
+  {"error": "Receiver not found"}
+  ```
+- **403 Forbidden** (Nem barát a címzett):
+  ```json
+  {"error": "You can only send messages to friends"}
+  ```
+- **400 Bad Request** (Érvénytelen média típus):
+  ```json
+  {"error": "Invalid message type"}
+  ```
+- **400 Bad Request** (Érvénytelen fájl típus):
+  ```json
+  {"error": "Invalid file type"}
+  ```
+- **400 Bad Request** (Fájl túl nagy):
+  ```json
+  {"error": "File too large"}
+  ```
+- **500 Internal Server Error** (Fájl feltöltés sikertelen):
+  ```json
+  {"error": "Failed to upload media file"}
+  ```
+
 #### Üzenetek lekérése
-```
+```http
 POST /chat/index.php/api/getMessages
 Authorization: Bearer <token>
 Content-Type: application/json
+```
 
+**Kérés:**
+```json
 {
     "confirmed_message_ids": [1, 2],
     "last_message_id": 10,
@@ -263,7 +393,7 @@ Content-Type: application/json
 }
 ```
 
-Válasz:
+**Sikeres válasz (200 OK):**
 ```json
 {
     "messages": [
