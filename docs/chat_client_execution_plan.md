@@ -4,6 +4,10 @@
 
 Ez a dokumentum részletes végrehajtási ütemtervet tartalmaz a Java Swing alapú chat kliens fejlesztéséhez. A cél egy stabil, felhasználóbarát alkalmazás, amely támogatja a bejelentkezést, barátkezelést, üzenetküldést (szöveg és média), valamint a profil és beállítások kezelését.
 
+**Lokális SQLite adatbázis:**  
+A kliens core moduljában egy beágyazott SQLite adatbázis kezeli az üzenet-előzményeket, barátlistát, barátkéréseket és eseménylogokat. Ez lehetővé teszi az offline működést, gyors keresést, naplózást, és multiplatform támogatást (Java, Android, .NET/C#).  
+A perzisztencia réteg DAO-kon keresztül érhető el, a Presenter csak a modellel kommunikál.
+
 ---
 
 ## 2. Modulok és részletes fejlesztési lépések

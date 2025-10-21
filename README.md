@@ -13,7 +13,9 @@ Ez a dokumentum a Java kliensalkalmazás felépítését és a fejlesztési foly
 
 A projekt két fő modulra bomlik a tiszta kódszerkezet és a felelősségi körök szétválasztása érdekében:
 
-*   **`core` modul:** Tartalmazza a teljes üzleti logikát, beleértve az API-kommunikációt, adatmodelleket és a perzisztenciát. Teljesen független a felhasználói felülettől.
+*   **`core` modul:** Tartalmazza a teljes üzleti logikát, beleértve az API-kommunikációt, adatmodelleket és a perzisztenciát.
+    - **Lokális SQLite adatbázis:** A core modulban egy beágyazott SQLite adatbázis kezeli az üzenet-előzményeket, barátlistát, barátkéréseket és eseménylogokat. Ez lehetővé teszi az offline működést, gyors keresést, naplózást, és multiplatform támogatást (Java, Android, .NET/C#).
+    - A perzisztencia réteg DAO-kon keresztül érhető el, a Presenter csak a modellel kommunikál.
 *   **`ui-swing` modul:** Megvalósítja a Swing alapú felhasználói felületet az MVP minta szerint. A `core` modultól függ.
 
 ## Build Folyamat

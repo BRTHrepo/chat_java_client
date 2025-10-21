@@ -1,5 +1,10 @@
 # Üzenetkezelés (Chat) modul részletes fejlesztési terv
 
+**Lokális SQLite adatbázis:**  
+Az üzenetkezelés modul minden üzenetet, státuszt, média csatolást egy beágyazott SQLite adatbázisban tárol a core modulban.  
+Ez lehetővé teszi az üzenet-előzmények gyors elérését, offline működést, keresést, naplózást, és multiplatform támogatást (Java, Android, .NET/C#).  
+A Presenter csak a modellel/DAO-val kommunikál, a UI közvetlenül nem használja az adatbázist.
+
 ## Funkciók
 
 - Üzenetek listázása (kiválasztott baráttal).

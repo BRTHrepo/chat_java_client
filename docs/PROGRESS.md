@@ -37,6 +37,12 @@ A fő nézet alapvető funkciói, a barátkezelés és a kijelentkezés is műk�
 - Ha a token lejárt vagy hamarosan lejár, automatikusan frissíti (új login vagy refresh).
 - Így a felhasználónak nem kell manuálisan újra bejelentkeznie, ha a token lejár.
 
+### 2025.10.21. - Lokális SQLite adatbázis architektúra dokumentálása
+
+- A core modulban beágyazott SQLite adatbázis kezeli az üzenet-előzményeket, barátlistát, barátkéréseket és eseménylogokat.
+- A perzisztencia réteg DAO-kon keresztül érhető el, a Presenter csak a modellel kommunikál.
+- A dokumentációkban (README.md, chat_client_execution_plan.md, chat_design.md, stb.) részletezve lett az MVP-integráció és a multiplatform támogatás (Java, Android, .NET/C#).
+
 ## Következő lépések
 
 1.  **Barátkezelés funkciók:**
