@@ -1,0 +1,171 @@
+package com.chatapp.ui.view;
+
+import com.chatapp.core.model.Message;
+import com.chatapp.core.model.User;
+
+import javax.swing.*;
+import java.awt.*;
+import javax.swing.event.ListSelectionListener;
+import java.awt.event.ActionListener;
+import java.util.List;
+
+public class MainView extends JFrame {
+
+    private JList<User> friendsList;
+    private JTextArea chatArea;
+    private JTextField messageField;
+    private JButton sendButton;
+    private JMenuBar menuBar;
+    private JMenuItem logoutMenuItem;
+    private JList<User> friendRequestsList;
+    private JButton acceptFriendRequestButton;
+    private JButton declineFriendRequestButton;
+    private JTextField addFriendField;
+    private JButton addFriendButton;
+
+    public MainView() {
+        setTitle("Chat Application");
+        setSize(800, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null); // Center the window
+
+        initComponents();
+    }
+
+    private void initComponents() {
+        // Main layout
+        setLayout(new BorderLayout());
+
+        // Menu Bar
+        menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        logoutMenuItem = new JMenuItem("Logout");
+        fileMenu.add(logoutMenuItem);
+        menuBar.add(fileMenu);
+        setJMenuBar(menuBar);
+
+        // Left Panel - Friends List
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setBorder(BorderFactory.createTitledBorder("Friends"));
+        friendsList = new JList<>();
+        leftPanel.add(new JScrollPane(friendsList), BorderLayout.CENTER);
+
+        JPanel addFriendPanel = new JPanel(new BorderLayout());
+        addFriendField = new JTextField();
+        addFriendButton = new JButton("Add");
+        addFriendPanel.add(addFriendField, BorderLayout.CENTER);
+        addFriendPanel.add(addFriendButton, BorderLayout.EAST);
+        leftPanel.add(addFriendPanel, BorderLayout.SOUTH);
+
+        add(leftPanel, BorderLayout.WEST);
+
+        // Center Panel - Chat
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setBorder(BorderFactory.createTitledBorder("Chat"));
+        chatArea = new JTextArea();
+        chatArea.setEditable(false);
+        centerPanel.add(new JScrollPane(chatArea), BorderLayout.CENTER);
+
+        JPanel messageInputPanel = new JPanel(new BorderLayout());
+        messageField = new JTextField();
+        sendButton = new JButton("Send");
+        messageInputPanel.add(messageField, BorderLayout.CENTER);
+        messageInputPanel.add(sendButton, BorderLayout.EAST);
+        centerPanel.add(messageInputPanel, BorderLayout.SOUTH);
+        add(centerPanel, BorderLayout.CENTER);
+
+        // Right Panel - Friend Requests
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.setBorder(BorderFactory.createTitledBorder("Friend Requests"));
+        friendRequestsList = new JList<>();
+        rightPanel.add(new JScrollPane(friendRequestsList), BorderLayout.CENTER);
+
+        JPanel requestButtonsPanel = new JPanel(new FlowLayout());
+        acceptFriendRequestButton = new JButton("Accept");
+        declineFriendRequestButton = new JButton("Decline");
+        requestButtonsPanel.add(acceptFriendRequestButton);
+        requestButtonsPanel.add(declineFriendRequestButton);
+        rightPanel.add(requestButtonsPanel, BorderLayout.SOUTH);
+
+        add(rightPanel, BorderLayout.EAST);
+    }
+
+    public void setFriendsList(List<User> friends) {
+        DefaultListModel<User> model = new DefaultListModel<>();
+        for (User friend : friends) {
+            model.addElement(friend);
+        }
+        friendsList.setModel(model);
+    }
+
+    public void setChatMessages(List<Message> messages) {
+        chatArea.setText("");
+        for (Message message : messages) {
+            chatArea.append(String.format("%s: %s\n", message.getSenderNickname(), message.getContent()));
+        }
+    }
+
+    public void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    public void showSuccess(String message) {
+        JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public void addFriendSelectionListener(ListSelectionListener listener) {
+        friendsList.addListSelectionListener(listener);
+    }
+
+    public void addSendMessageListener(ActionListener listener) {
+        sendButton.addActionListener(listener);
+    }
+
+    public String getMessageText() {
+        return messageField.getText();
+    }
+
+    public void clearMessageText() {
+        messageField.setText("");
+    }
+
+    public User getSelectedFriend() {
+        return friendsList.getSelectedValue();
+    }
+
+    public User getSelectedFriendRequest() {
+        return friendRequestsList.getSelectedValue();
+    }
+
+    public void setFriendRequests(List<User> requests) {
+        DefaultListModel<User> model = new DefaultListModel<>();
+        for (User request : requests) {
+            model.addElement(request);
+        }
+        friendRequestsList.setModel(model);
+    }
+
+    public void addAcceptFriendRequestListener(ActionListener listener) {
+        acceptFriendRequestButton.addActionListener(listener);
+    }
+
+    public void addDeclineFriendRequestListener(ActionListener listener) {
+        declineFriendRequestButton.addActionListener(listener);
+    }
+
+    public String getAddFriendNickname() {
+        return addFriendField.getText();
+    }
+
+    public void clearAddFriendNickname() {
+        addFriendField.setText("");
+    }
+
+    public void addAddFriendListener(ActionListener listener) {
+        addFriendButton.addActionListener(listener);
+    }
+
+    public void addLogoutListener(ActionListener listener) {
+        logoutMenuItem.addActionListener(listener);
+    }
+}

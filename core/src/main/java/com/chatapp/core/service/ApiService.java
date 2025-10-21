@@ -4,6 +4,7 @@ import com.chatapp.core.model.ApiError;
 import com.chatapp.core.model.Message;
 import com.chatapp.core.model.User;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
@@ -19,10 +20,11 @@ import java.util.Objects;
 public class ApiService {
     private final String baseUrl;
     private final OkHttpClient client = new OkHttpClient();
-    private final Gson gson = new Gson();
+    private final Gson gson;
 
     public ApiService(String baseUrl) {
         this.baseUrl = baseUrl;
+        this.gson = new GsonBuilder().setLenient().create();
     }
 
     private String getFullUrl(String endpoint) {
@@ -118,21 +120,34 @@ public class ApiService {
 
     public List<User> getFriends(String token) {
         String url = getFullUrl("/index.php/api/getFriends");
+
+        // Üres JSON test, mert például nem küldünk plusz adatot a POST-ban
+        RequestBody requestBody = RequestBody.create(
+                "",
+                MediaType.get("application/json; charset=utf-8")
+        );
+
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("Authorization", "Bearer " + token)
-                .post(RequestBody.create("", MediaType.get("application/json; charset=utf-8")))
+                .post(requestBody)  // POST metódus használata
                 .build();
-        // Special handling for nested JSON
+
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
+                System.out.println("getFriends Unsuccessful response code: " + response.code());
                 handleUnsuccessfulResponse(response);
             }
             String responseBody = Objects.requireNonNull(response.body()).string();
-            JsonObject jsonObject = gson.fromJson(responseBody, JsonObject.class);
-            JsonElement friendsElement = jsonObject.get("friends");
-            Type type = new TypeToken<List<User>>() {}.getType();
-            return gson.fromJson(friendsElement, type);
+            JsonElement jsonElement = gson.fromJson(responseBody, JsonElement.class);
+            if (jsonElement.isJsonObject()) {
+                JsonObject jsonObject = jsonElement.getAsJsonObject();
+                JsonElement friendsElement = jsonObject.get("friends");
+                Type type = new TypeToken<List<User>>() {}.getType();
+                return gson.fromJson(friendsElement, type);
+            }
+            // Ha a válasz nem JSON objektum, akkor üres lista visszaadása
+            return new java.util.ArrayList<>();
         } catch (Exception e) {
             if (e instanceof ApiException) {
                 throw (ApiException) e;
@@ -141,23 +156,40 @@ public class ApiService {
         }
     }
 
+
     public List<User> getFriendRequests(String token) {
         String url = getFullUrl("/index.php/api/getFriendRequests");
+
+        // POST kéréshez létrehozunk egy üres body-t (például, ha nem kell adatot küldeni)
+        RequestBody requestBody = RequestBody.create(
+                "",  // Üres string, ha nincs elküldendő adat
+                MediaType.get("application/json; charset=utf-8")
+        );
+
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("Authorization", "Bearer " + token)
-                .post(RequestBody.create("", MediaType.get("application/json; charset=utf-8")))
+                .post(requestBody)  // POST metódus itt van beállítva
                 .build();
-        // Special handling for nested JSON
+
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
+                System.out.println("getFriendRequests Unsuccessful response code: " + response.toString());
                 handleUnsuccessfulResponse(response);
             }
+
             String responseBody = Objects.requireNonNull(response.body()).string();
-            JsonObject jsonObject = gson.fromJson(responseBody, JsonObject.class);
-            JsonElement requestsElement = jsonObject.get("requests");
-            Type type = new TypeToken<List<User>>() {}.getType();
-            return gson.fromJson(requestsElement, type);
+            JsonElement jsonElement = gson.fromJson(responseBody, JsonElement.class);
+
+            if (jsonElement.isJsonObject()) {
+                JsonObject jsonObject = jsonElement.getAsJsonObject();
+                JsonElement requestsElement = jsonObject.get("requests");
+                Type type = new TypeToken<List<User>>() {}.getType();
+                return gson.fromJson(requestsElement, type);
+            }
+
+            // Ha a válasz nem JSON objektum, üres lista visszaadása
+            return new java.util.ArrayList<>();
         } catch (Exception e) {
             if (e instanceof ApiException) {
                 throw (ApiException) e;
@@ -165,6 +197,7 @@ public class ApiService {
             throw new ApiException(503, "Network or parsing error: " + e.getMessage());
         }
     }
+
 
     public void sendMessage(String token, int receiverId, String msgType, String content, File mediaFile) {
         String url = getFullUrl("/index.php/api/sendMessage");

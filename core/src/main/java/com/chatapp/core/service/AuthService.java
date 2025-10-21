@@ -69,7 +69,7 @@ public class AuthService {
         User user = apiService.registerLogin(email, password, nickname);
         if (user != null && user.getId() > 0) {
             this.currentUser = user;
-            this.currentToken = "dummy_token_" + user.getId(); // This should be the actual token from the API response
+        this.currentToken = user.getToken(); // Extract token from API response
             saveCredentials(email, password);
             saveSession();
         }
@@ -133,5 +133,9 @@ public class AuthService {
 
     public void setApiService(ApiService apiService) {
         this.apiService = apiService;
+    }
+
+    public ApiService getApiService() {
+        return apiService;
     }
 }

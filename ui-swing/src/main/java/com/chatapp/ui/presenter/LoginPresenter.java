@@ -3,8 +3,10 @@ package com.chatapp.ui.presenter;
 import com.chatapp.core.model.User;
 import com.chatapp.core.service.ApiException;
 import com.chatapp.core.service.AuthService;
+import com.chatapp.core.service.ApiService;
 import com.chatapp.ui.util.ErrorMessageTranslator;
 import com.chatapp.ui.view.LoginView;
+import com.chatapp.ui.view.MainView;
 
 import javax.swing.*;
 import java.awt.*;
@@ -68,7 +70,7 @@ public class LoginPresenter {
         } catch (ApiException ex) {
             String friendlyMessage = ErrorMessageTranslator.translate(ex);
             loginView.showError(friendlyMessage);
-           // ex.printStackTrace();
+            ex.printStackTrace();
         } catch (Exception ex) {
             loginView.showError("Ismeretlen hiba történt, próbáld újra később!");
          //   ex.printStackTrace();
@@ -109,9 +111,13 @@ public class LoginPresenter {
     }
 
     private void openMainView() {
-        // TODO: Implement MainView and MainPresenter
-        // For now, just show a success message and close the login window
-        loginView.showSuccess("Login successful! Main window will be implemented later.");
-        loginView.dispose();
+        SwingUtilities.invokeLater(() -> {
+            loginView.dispose();
+            MainView mainView = new MainView();
+            ApiService apiService = authService.getApiService();
+            MainPresenter mainPresenter = new MainPresenter(mainView, authService, apiService);
+            mainPresenter.loadInitialData();
+            mainView.setVisible(true);
+        });
     }
 }

@@ -190,23 +190,39 @@ Content-Type: application/json
 ### Barátkezelés
 
 #### Barát hozzáadása
+
 ```http
 POST /chat/index.php/api/addFriend
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
-**Kérés:**
+**Header példa:**
+```
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+Content-Type: application/json
+```
+
+**Kérés body:**
 ```json
 {
     "nickname": "friend_nickname"
 }
 ```
+*A JWT token alapján a szerver tudja, hogy kihez kell hozzáadni a barátot, ezért nem kell külön user_id-t küldeni.*
 
 **Sikeres válasz (200 OK):**
 ```json
 {
     "message": "Friend request sent",
+    "friend_id": 2,
+    "nickname": "friend_nickname"
+}
+```
+*Ha a címzett már küldött neked barátkérést, akkor automatikusan barátok lesztek, és a válasz:*
+```json
+{
+    "message": "Friend added successfully",
     "friend_id": 2,
     "nickname": "friend_nickname"
 }
@@ -228,6 +244,10 @@ Content-Type: application/json
 - **400 Bad Request** (Már elküldtük a kérést):
   ```json
   {"error": "Friend request already sent"}
+  ```
+- **400 Bad Request** (Saját magadhoz nem adhatsz barátot):
+  ```json
+  {"error": "Cannot add yourself as a friend"}
   ```
 
 #### Barát törlése / Kérés elutasítása
@@ -265,9 +285,22 @@ Content-Type: application/json
   ```
 
 #### Barátok listája
+
 ```http
 POST /chat/index.php/api/getFriends
 Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Header példa:**
+```
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+Content-Type: application/json
+```
+
+**Kérés body:** _(nem kötelező, üres objektum is lehet)_
+```json
+{}
 ```
 
 **Sikeres válasz (200 OK):**
@@ -283,6 +316,13 @@ Authorization: Bearer <token>
     ]
 }
 ```
+*Az eredmény a JWT tokenben azonosított felhasználó barátait adja vissza.*
+
+**Hibás válaszok:**
+- **401 Unauthorized** (Hiányzó vagy érvénytelen token):
+  ```json
+  {"error": "Invalid token"}
+  ```
 
 #### Barátkérések listája
 ```http
