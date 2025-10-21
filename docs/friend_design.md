@@ -54,6 +54,7 @@
 4. Barát törlése → API hívás, lista frissítése.
 5. Barátkérések betöltése → panel frissítése.
 6. Elfogadás/elutasítás → API hívás, lista frissítése.
+7. Periodikus polling: a barátkérések (és barátlista) automatikusan frissülnek meghatározott időközönként, így a felhasználó mindig naprakész adatokat lát.
 
 ## Hibakezelés
 

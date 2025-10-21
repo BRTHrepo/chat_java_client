@@ -57,6 +57,7 @@ Részletes fejlesztési terv: lásd [docs/error_handling_design.md](error_handli
 - 1. nap: MainView/MainPresenter (alap ablak, navigáció)
 - 2-3. nap: Barátkezelés (lista, hozzáadás, törlés, kérések)
 - 4-6. nap: Üzenetkezelés (chat ablak, üzenetküldés, polling, média)
+    - A periodikus lekérdezés (polling) nemcsak az üzeneteket, hanem a barátkéréseket is automatikusan frissíti, így a felhasználó mindig naprakész adatokat lát.
 - 7. nap: Profil és beállítások (adatmódosítás, jelszóemlékeztető, szerver URL)
 - 8. nap: Hibakezelés finomítása (egységes try-catch, ErrorMessageTranslator)
 - 9-10. nap: UI fejlesztés, tesztelés (reszponzív design, felhasználói élmény)
