@@ -48,6 +48,7 @@ public class MainPresenter {
 
         attachListeners();
         addPollingListeners();
+        addProfileMenuListener();
         startPolling();
 
         // Polling szál leállítása ablak bezárásakor is
@@ -106,6 +107,23 @@ public class MainPresenter {
                     JOptionPane.showMessageDialog(view, "Érvénytelen számformátum.");
                 }
             }
+        });
+    }
+
+    private void addProfileMenuListener() {
+        view.addProfileListener(e -> openProfileView());
+    }
+
+    private void openProfileView() {
+        SwingUtilities.invokeLater(() -> {
+            com.chatapp.ui.view.ProfileView profileView = new com.chatapp.ui.view.ProfileView();
+            new com.chatapp.ui.presenter.ProfilePresenter(
+                profileView,
+                authService,
+                apiService,
+                friendDao
+            );
+            profileView.setVisible(true);
         });
     }
 

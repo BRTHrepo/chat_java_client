@@ -17,6 +17,7 @@ public class MainView extends JFrame {
     private JButton sendButton;
     private JMenuBar menuBar;
     private JMenuItem logoutMenuItem;
+    private JMenuItem profileMenuItem;
     private JMenuItem setPollingPeriodMenuItem;
     private JButton manualPollingButton;
     private JList<User> friendRequestsList;
@@ -42,6 +43,8 @@ public class MainView extends JFrame {
         menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         logoutMenuItem = new JMenuItem("Logout");
+        profileMenuItem = new JMenuItem("Profil...");
+        fileMenu.add(profileMenuItem);
         fileMenu.add(logoutMenuItem);
 
         JMenu pollingMenu = new JMenu("Polling");
@@ -193,6 +196,10 @@ public class MainView extends JFrame {
 
     public void addAddFriendListener(ActionListener listener) {
         addFriendButton.addActionListener(listener);
+    }
+
+    public void addProfileListener(ActionListener listener) {
+        profileMenuItem.addActionListener(listener);
     }
 
     public void addLogoutListener(ActionListener listener) {

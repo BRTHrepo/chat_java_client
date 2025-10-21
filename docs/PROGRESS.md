@@ -64,10 +64,17 @@ A fő nézet alapvető funkciói, a barátkezelés és a kijelentkezés is műk�
 - A DAO-k MVP architektúrában a model réteg részei, a Presenter ezeken keresztül éri el a helyi adatokat.
 - A projekt mostantól támogatja az üzenet-előzmények, barátlista, barátkérések és események tartós, lokális tárolását.
 
+### 2025.10.21. - Profilnézet és szerkesztés
+
+- Elkészült a ProfileView (profilnézet) és ProfilePresenter (logika).
+- A felhasználó megtekintheti és szerkesztheti a nevét és avatar URL-jét.
+- A módosítások csak a helyi adatbázisban és memóriában frissülnek, mert a szerveroldali API jelenleg nem támogatja a profiladatok módosítását.
+- A főmenüben elérhető a "Profil..." menüpont, amely megnyitja a szerkesztő nézetet.
+
 ## Következő lépések
 
 1.  **Barátkezelés funkciók:**
-    - Barátkérések megjelenítése és kezelése (elfogadás, elutasítás).
+    - Barátkérések megjelenítése és kezelése (elfogadás, elutasítása).
     - Új barát hozzáadása.
 2.  **Profil nézet:**
     - Felhasználói profil adatainak megjelenítése.
