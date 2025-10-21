@@ -24,6 +24,13 @@ Ez a dokumentum a Java chat kliens fejlesztésének aktuális állapotát és a 
 
 A fő nézet alapvető funkciói, a barátkezelés és a kijelentkezés is működik. A felhasználó sikeres bejelentkezés után látja a barátainak és a barátkéréseinek listáját, tud üzenetet küldeni. A hálózati kérések aszinkron módon, a UI blokkolása nélkül futnak. A JSON feldolgozási hibák javítva lettek.
 
+### 2025.10.21. - Login tokenkezelés javítása
+
+- A szerver a login válaszban a JWT tokent külön kulcsként (`"token"`) küldi.
+- A Java kliens most már a teljes JSON választ feldolgozza: a tokent külön eltárolja, a user adatokat (`user_id`, `nickname`, `email`) külön tölti be.
+- Új metódus: `registerLoginRaw` az ApiService-ben, amely a teljes JSON választ visszaadja.
+- Így a login után a token nem lesz null, és minden védett API hívásnál helyesen átadásra kerül az Authorization headerben.
+
 ## Következő lépések
 
 1.  **Barátkezelés funkciók:**

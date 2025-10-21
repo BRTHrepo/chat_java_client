@@ -66,10 +66,26 @@ public class AuthService {
     }
 
     public User login(String email, String password, String nickname) {
-        User user = apiService.registerLogin(email, password, nickname);
-        if (user != null && user.getId() > 0) {
+        // A registerLogin mostantól a teljes JSON választ visszaadja (token + user adatokat)
+        String responseJson = apiService.registerLoginRaw(email, password, nickname);
+        if (responseJson == null) {
+            return null;
+        }
+        // Parse JSON: {"token": "...", "user_id": ..., "nickname": ..., "email": ...}
+        com.google.gson.JsonObject jsonObject = gson.fromJson(responseJson, com.google.gson.JsonObject.class);
+        String token = jsonObject.has("token") ? jsonObject.get("token").getAsString() : null;
+        int userId = jsonObject.has("user_id") ? jsonObject.get("user_id").getAsInt() : 0;
+        String nicknameResp = jsonObject.has("nickname") ? jsonObject.get("nickname").getAsString() : "";
+        String emailResp = jsonObject.has("email") ? jsonObject.get("email").getAsString() : "";
+
+        User user = new User();
+        user.setId(userId);
+        user.setNickname(nicknameResp);
+        user.setEmail(emailResp);
+
+        if (user != null && user.getId() > 0 && token != null) {
             this.currentUser = user;
-        this.currentToken = user.getToken(); // Extract token from API response
+            this.currentToken = token;
             saveCredentials(email, password);
             saveSession();
         }

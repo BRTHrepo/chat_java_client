@@ -66,6 +66,7 @@ public class MainPresenter {
             @Override
             protected List<User> doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
+                System.out.println("Loading friends with token: " + token);
                 return apiService.getFriends(token);
             }
 

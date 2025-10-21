@@ -41,11 +41,32 @@ public class ApiService {
             // The response body was not a valid JSON or did not match ApiError structure
         }
 
-        String errorMessage = (apiError != null && apiError.getError() != null)
-                ? apiError.getError()
-                : "An unexpected error occurred. HTTP status code: " + response.code();
+        if (apiError == null) {
+            apiError = new ApiError();
+            apiError.setError("An unexpected error occurred. HTTP status code: " + response.code());
+        }
 
-        throw new ApiException(response.code(), errorMessage);
+        // Próbáljuk kitölteni a route, method, userId, message mezőket, ha elérhetőek
+        // route: endpoint alapján
+        String requestUrl = response.request().url().encodedPath();
+        String method = response.request().method();
+        apiError.setRoute(requestUrl);
+        apiError.setMethod(method);
+
+        // userId keresése a kérés body-jából vagy headerből (ha van)
+        String userId = null;
+        Request request = response.request();
+        if (request.header("Authorization") != null) {
+            userId = request.header("Authorization");
+        }
+        apiError.setUserId(userId);
+
+        // message: ha nincs külön, akkor az error mező tartalma
+        if (apiError.getMessage() == null) {
+            apiError.setMessage(apiError.getError());
+        }
+
+        throw new ApiException(response.code(), apiError);
     }
 
     private <T> T executeRequest(Request request, Type returnType) {
@@ -67,7 +88,10 @@ public class ApiService {
         }
     }
 
-    public User registerLogin(String email, String password, String nickname) {
+
+
+    // Új metódus: teljes JSON válasz visszaadása Stringként
+    public String registerLoginRaw(String email, String password, String nickname) {
         String url = getFullUrl("/index.php/api/registerLogin");
         JsonObject json = new JsonObject();
         json.addProperty("email", email);
@@ -76,7 +100,17 @@ public class ApiService {
 
         RequestBody body = RequestBody.create(json.toString(), MediaType.get("application/json; charset=utf-8"));
         Request request = new Request.Builder().url(url).post(body).build();
-        return executeRequest(request, User.class);
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                handleUnsuccessfulResponse(response);
+            }
+            return response.body() != null ? response.body().string() : null;
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw (ApiException) e;
+            }
+            throw new ApiException(503, "Network or parsing error: " + e.getMessage());
+        }
     }
 
     public void forgotPassword(String email) {
