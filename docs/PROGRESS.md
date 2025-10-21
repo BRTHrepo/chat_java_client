@@ -31,6 +31,12 @@ A fő nézet alapvető funkciói, a barátkezelés és a kijelentkezés is műk�
 - Új metódus: `registerLoginRaw` az ApiService-ben, amely a teljes JSON választ visszaadja.
 - Így a login után a token nem lesz null, és minden védett API hívásnál helyesen átadásra kerül az Authorization headerben.
 
+### 2025.10.21. - JWT token automatikus frissítés polling során
+
+- A kliens minden polling ciklusban ellenőrzi a JWT token érvényességét.
+- Ha a token lejárt vagy hamarosan lejár, automatikusan frissíti (új login vagy refresh).
+- Így a felhasználónak nem kell manuálisan újra bejelentkeznie, ha a token lejár.
+
 ## Következő lépések
 
 1.  **Barátkezelés funkciók:**

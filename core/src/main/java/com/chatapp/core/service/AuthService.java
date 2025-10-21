@@ -96,8 +96,21 @@ public class AuthService {
         if (currentToken == null) {
             return false;
         }
-        // In a real implementation, you would decode the JWT and check its expiration date
-        // For now, we'll just check if the token is not null
+        // JWT exp ellenőrzés (egyszerű Base64 + JSON parse)
+        try {
+            String[] parts = currentToken.split("\\.");
+            if (parts.length != 3) return false;
+            String payloadJson = new String(java.util.Base64.getUrlDecoder().decode(parts[1]));
+            com.google.gson.JsonObject payload = gson.fromJson(payloadJson, com.google.gson.JsonObject.class);
+            if (payload.has("exp")) {
+                long exp = payload.get("exp").getAsLong();
+                long now = System.currentTimeMillis() / 1000L;
+                // Ha már lejárt vagy 1 percen belül lejár
+                return exp > now + 60;
+            }
+        } catch (Exception e) {
+            return false;
+        }
         return true;
     }
 

@@ -17,6 +17,8 @@ public class MainView extends JFrame {
     private JButton sendButton;
     private JMenuBar menuBar;
     private JMenuItem logoutMenuItem;
+    private JMenuItem setPollingPeriodMenuItem;
+    private JButton manualPollingButton;
     private JList<User> friendRequestsList;
     private JButton acceptFriendRequestButton;
     private JButton declineFriendRequestButton;
@@ -41,7 +43,12 @@ public class MainView extends JFrame {
         JMenu fileMenu = new JMenu("File");
         logoutMenuItem = new JMenuItem("Logout");
         fileMenu.add(logoutMenuItem);
+
+        JMenu pollingMenu = new JMenu("Polling");
+        setPollingPeriodMenuItem = new JMenuItem("Set Polling Period...");
+        pollingMenu.add(setPollingPeriodMenuItem);
         menuBar.add(fileMenu);
+        menuBar.add(pollingMenu);
         setJMenuBar(menuBar);
 
         // Left Panel - Friends List
@@ -71,6 +78,13 @@ public class MainView extends JFrame {
         sendButton = new JButton("Send");
         messageInputPanel.add(messageField, BorderLayout.CENTER);
         messageInputPanel.add(sendButton, BorderLayout.EAST);
+
+        // Polling gomb a chat panel tetején
+        JPanel pollingPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        manualPollingButton = new JButton("Frissítés (Polling)");
+        pollingPanel.add(manualPollingButton);
+        centerPanel.add(pollingPanel, BorderLayout.NORTH);
+
         centerPanel.add(messageInputPanel, BorderLayout.SOUTH);
         add(centerPanel, BorderLayout.CENTER);
 
@@ -88,6 +102,22 @@ public class MainView extends JFrame {
         rightPanel.add(requestButtonsPanel, BorderLayout.SOUTH);
 
         add(rightPanel, BorderLayout.EAST);
+    }
+
+    public JButton getManualPollingButton() {
+        return manualPollingButton;
+    }
+
+    public JMenuItem getSetPollingPeriodMenuItem() {
+        return setPollingPeriodMenuItem;
+    }
+
+    public void addManualPollingListener(ActionListener listener) {
+        manualPollingButton.addActionListener(listener);
+    }
+
+    public void addSetPollingPeriodListener(ActionListener listener) {
+        setPollingPeriodMenuItem.addActionListener(listener);
     }
 
     public void setFriendsList(List<User> friends) {

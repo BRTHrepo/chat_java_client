@@ -12,17 +12,86 @@ import javax.swing.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class MainPresenter {
 
     private final MainView view;
     private final AuthService authService;
     private final ApiService apiService;
 
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final AtomicBoolean isPolling = new AtomicBoolean(false);
+    private int pollingPeriodSeconds = 5; // alapértelmezett 5 mp
+
     public MainPresenter(MainView view, AuthService authService, ApiService apiService) {
         this.view = view;
         this.authService = authService;
         this.apiService = apiService;
         attachListeners();
+        addPollingListeners();
+        startPolling();
+
+        // Polling szál leállítása ablak bezárásakor is
+        this.view.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                scheduler.shutdownNow();
+            }
+        });
+    }
+
+    private void startPolling() {
+        scheduler.scheduleAtFixedRate(this::pollingTask, 0, pollingPeriodSeconds, TimeUnit.SECONDS);
+    }
+
+    public void setPollingPeriod(int seconds) {
+        this.pollingPeriodSeconds = seconds;
+        scheduler.shutdownNow();
+        // Újraindítás új periódussal
+        ScheduledExecutorService newScheduler = Executors.newSingleThreadScheduledExecutor();
+        newScheduler.scheduleAtFixedRate(this::pollingTask, 0, pollingPeriodSeconds, TimeUnit.SECONDS);
+    }
+
+    public void manualPolling() {
+        pollingTask();
+    }
+
+    private void pollingTask() {
+        if (isPolling.getAndSet(true)) {
+            return; // Már fut egy polling, ne indítsunk újat
+        }
+        try {
+            authService.refreshTokenIfNeeded();
+            loadFriends();
+            loadFriendRequests();
+            // Ha szükséges, loadMessages is hívható itt
+        } finally {
+            isPolling.set(false);
+        }
+    }
+
+    private void addPollingListeners() {
+        view.addManualPollingListener(e -> manualPolling());
+        view.addSetPollingPeriodListener(e -> {
+            String input = JOptionPane.showInputDialog(view, "Polling periódus (másodperc):", pollingPeriodSeconds);
+            if (input != null) {
+                try {
+                    int seconds = Integer.parseInt(input.trim());
+                    if (seconds > 0) {
+                        setPollingPeriod(seconds);
+                        JOptionPane.showMessageDialog(view, "Új polling periódus: " + seconds + " mp");
+                    } else {
+                        JOptionPane.showMessageDialog(view, "A periódusnak pozitív egész számnak kell lennie.");
+                    }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(view, "Érvénytelen számformátum.");
+                }
+            }
+        });
     }
 
     private void attachListeners() {
@@ -189,6 +258,7 @@ public class MainPresenter {
     }
 
     public void handleLogout() {
+        scheduler.shutdownNow();
         authService.logout();
         openLoginView();
     }

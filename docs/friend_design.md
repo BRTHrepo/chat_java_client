@@ -55,6 +55,7 @@
 5. Barátkérések betöltése → panel frissítése.
 6. Elfogadás/elutasítás → API hívás, lista frissítése.
 7. Periodikus polling: a barátkérések (és barátlista) automatikusan frissülnek meghatározott időközönként, így a felhasználó mindig naprakész adatokat lát.
+8. A polling során a kliens minden ciklusban ellenőrzi a JWT token érvényességét, és ha lejárt vagy hamarosan lejár, automatikusan frissíti azt.
 
 ## Hibakezelés
 

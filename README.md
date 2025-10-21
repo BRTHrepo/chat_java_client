@@ -31,6 +31,7 @@ Ez a parancs letisztítja a korábbi buildeket, lefordítja a forráskódot, fut
 - A szerver a login válaszban a JWT tokent külön kulcsként (`"token"`) küldi, nem a user objektum részeként.
 - A Java kliens a teljes JSON választ feldolgozza: a tokent külön eltárolja, a user adatokat (`user_id`, `nickname`, `email`) külön tölti be.
 - Így a login után a token nem lesz null, és minden védett API hívásnál helyesen átadásra kerül az Authorization headerben.
+- **Újdonság:** A JWT token érvényességét a kliens periodikusan ellenőrzi, és ha lejárt vagy hamarosan lejár, automatikusan frissíti (új login vagy refresh). Így a felhasználónak nem kell manuálisan újra bejelentkeznie.
 
 ## Indítás
 
