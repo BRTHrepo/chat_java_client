@@ -1,6 +1,16 @@
 package com.chatapp.core.model;
 
 public class Message {
+    private boolean read;
+    // ... többi mező
+
+    public boolean isRead() {
+        return read;
+    }
+
+    public void setRead(boolean read) {
+        this.read = read;
+    }
     private int id;
     private int senderId;
     private String senderNickname;
