@@ -5,6 +5,12 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 
 public class LoginView extends JFrame {
+    public void setEmail(String email) {
+        emailField.setText(email);
+    }
+    public void setPassword(String password) {
+        passwordField.setText(password);
+    }
     private JTextField emailField;
     private JPasswordField passwordField;
     private JTextField nicknameField;

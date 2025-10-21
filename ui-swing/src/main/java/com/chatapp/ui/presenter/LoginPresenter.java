@@ -21,10 +21,27 @@ public class LoginPresenter {
         this.loginView = loginView;
         this.authService = authService;
         attachListeners();
-        
-        // If a session is already active, auto-login
-        if (authService.isLoggedIn()) {
-            openMainView();
+
+        // Automatikus login próbálkozás Preferences-ből
+        String savedEmail = authService.getSavedEmail();
+        String savedPassword = authService.getSavedPassword();
+        if (savedEmail != null && savedPassword != null) {
+            loginView.setEmail(savedEmail);
+            loginView.setPassword(savedPassword);
+            // Nickname-t nem mentjük, azt a usernek kell megadnia
+            try {
+                User user = authService.login(savedEmail, savedPassword, loginView.getNickname());
+                if (user != null) {
+                    loginView.showSuccess("Automatikus bejelentkezés sikeres!");
+                    openMainView();
+                } else {
+                    authService.setCurrentToken(null);
+                    loginView.showError("Automatikus bejelentkezés sikertelen. Kérlek jelentkezz be újra.");
+                }
+            } catch (Exception ex) {
+                authService.setCurrentToken(null);
+                loginView.showError("Automatikus bejelentkezés sikertelen. Kérlek jelentkezz be újra.");
+            }
         }
     }
 

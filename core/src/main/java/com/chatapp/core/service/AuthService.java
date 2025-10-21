@@ -37,6 +37,10 @@ public class AuthService {
         return currentToken;
     }
 
+    public void setCurrentToken(String token) {
+        this.currentToken = token;
+    }
+
     public boolean isLoggedIn() {
         return currentUser != null && currentToken != null;
     }

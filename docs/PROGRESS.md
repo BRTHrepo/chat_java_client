@@ -37,11 +37,24 @@ A fő nézet alapvető funkciói, a barátkezelés és a kijelentkezés is műk�
 - Ha a token lejárt vagy hamarosan lejár, automatikusan frissíti (új login vagy refresh).
 - Így a felhasználónak nem kell manuálisan újra bejelentkeznie, ha a token lejár.
 
+### 2025.10.21. - Login folyamat javítása
+
+- Minden programinduláskor tényleges login történik a Preferences-ben tárolt email/jelszóval (a mezők automatikusan kitöltődnek).
+- Sikertelen login esetén csak a token nullázódik, a mezők kitöltve maradnak, és a felhasználó újra próbálkozhat.
+- A pooling során a token érvényességét folyamatosan figyeljük, és ha lejár vagy érvénytelen, automatikusan újra loginolunk (vagy visszairányítjuk a felhasználót a login képernyőre).
+
 ### 2025.10.21. - Lokális SQLite adatbázis architektúra dokumentálása
 
 - A core modulban beágyazott SQLite adatbázis kezeli az üzenet-előzményeket, barátlistát, barátkéréseket és eseménylogokat.
 - A perzisztencia réteg DAO-kon keresztül érhető el, a Presenter csak a modellel kommunikál.
 - A dokumentációkban (README.md, chat_client_execution_plan.md, chat_design.md, stb.) részletezve lett az MVP-integráció és a multiplatform támogatás (Java, Android, .NET/C#).
+
+### 2025.10.21. - SQLite perzisztencia réteg implementációja
+
+- Elkészült a DBService (adatbázis inicializálás, tábla létrehozás).
+- Elkészült a MessageDao (üzenetek CRUD), FriendDao (barátok CRUD), FriendRequestDao (barátkérések CRUD), EventLogDao (eseménylog CRUD).
+- A DAO-k MVP architektúrában a model réteg részei, a Presenter ezeken keresztül éri el a helyi adatokat.
+- A projekt mostantól támogatja az üzenet-előzmények, barátlista, barátkérések és események tartós, lokális tárolását.
 
 ## Következő lépések
 
