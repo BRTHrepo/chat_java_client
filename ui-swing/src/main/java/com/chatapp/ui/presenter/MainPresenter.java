@@ -23,6 +23,13 @@ public class MainPresenter {
     private final AuthService authService;
     private final ApiService apiService;
 
+    // Perzisztencia réteg
+    private final com.chatapp.core.service.DBService dbService;
+    private final com.chatapp.core.service.FriendDao friendDao;
+    private final com.chatapp.core.service.MessageDao messageDao;
+    private final com.chatapp.core.service.FriendRequestDao friendRequestDao;
+    private final com.chatapp.core.service.EventLogDao eventLogDao;
+
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final AtomicBoolean isPolling = new AtomicBoolean(false);
     private int pollingPeriodSeconds = 5; // alapértelmezett 5 mp
@@ -31,6 +38,14 @@ public class MainPresenter {
         this.view = view;
         this.authService = authService;
         this.apiService = apiService;
+
+        // Perzisztencia réteg példányosítása
+        this.dbService = new com.chatapp.core.service.DBService();
+        this.friendDao = new com.chatapp.core.service.FriendDao(dbService);
+        this.messageDao = new com.chatapp.core.service.MessageDao(dbService);
+        this.friendRequestDao = new com.chatapp.core.service.FriendRequestDao(dbService);
+        this.eventLogDao = new com.chatapp.core.service.EventLogDao(dbService);
+
         attachListeners();
         addPollingListeners();
         startPolling();
@@ -135,8 +150,17 @@ public class MainPresenter {
             @Override
             protected List<User> doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
-                System.out.println("Loading friends with token: " + token);
-                return apiService.getFriends(token);
+                List<User> friendsFromServer = apiService.getFriends(token);
+
+                // DB frissítés: törlés és mentés
+                friendDao.deleteAllFriends();
+                for (User user : friendsFromServer) {
+                    friendDao.saveFriend(user);
+                }
+                // Eseménylog mentése
+                eventLogDao.logEvent("friends_sync", java.time.LocalDateTime.now().toString(), "Barátlista szinkronizálva a szerverrel.");
+                // Mindig DB-ből olvasunk a UI-hoz
+                return friendDao.getAllFriends();
             }
 
             @Override
@@ -164,7 +188,28 @@ public class MainPresenter {
             @Override
             protected List<User> doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
-                return apiService.getFriendRequests(token);
+                List<User> requestsFromServer = apiService.getFriendRequests(token);
+
+                // DB frissítés: törlés és mentés
+                friendRequestDao.deleteAllFriendRequests();
+                for (User user : requestsFromServer) {
+                    // Feltételezzük, hogy a bejelentkezett user a címzett (toUserId)
+                    int fromUserId = user.getId();
+                    int toUserId = authService.getCurrentUser() != null ? authService.getCurrentUser().getId() : 0;
+                    String requestDate = ""; // Ha van dátum, azt is át kell adni
+                    friendRequestDao.saveFriendRequest(fromUserId, toUserId, requestDate);
+                }
+
+                // DB-ből olvasunk, de a UI User listát vár, ezért konvertálni kell
+                java.util.List<com.chatapp.core.service.FriendRequestDao.FriendRequestRecord> dbRequests = friendRequestDao.getAllFriendRequests();
+                java.util.List<User> userList = new java.util.ArrayList<>();
+                for (com.chatapp.core.service.FriendRequestDao.FriendRequestRecord req : dbRequests) {
+                    User u = new User();
+                    u.setId(req.fromUserId);
+                    // További mezők feltöltése, ha szükséges
+                    userList.add(u);
+                }
+                return userList;
             }
 
             @Override
@@ -192,10 +237,13 @@ public class MainPresenter {
             @Override
             protected List<com.chatapp.core.model.Message> doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
-                // The getMessages method in ApiService seems complex,
-                // for now I will pass null and default values.
-                // This needs to be revisited based on actual API requirements.
-                return apiService.getMessages(token, null, 0, "");
+                List<com.chatapp.core.model.Message> messagesFromServer = apiService.getMessages(token, null, friendId, "");
+                // DB frissítés: opcionálisan törölhetjük a partnerhez tartozó üzeneteket, de most csak beszúrjuk az újakat
+                for (com.chatapp.core.model.Message msg : messagesFromServer) {
+                    messageDao.saveMessage(msg);
+                }
+                // Mindig DB-ből olvasunk a UI-hoz
+                return messageDao.getMessagesWithFriend(friendId);
             }
 
             @Override
@@ -231,6 +279,23 @@ public class MainPresenter {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
+                // Először DB-be mentjük az üzenetet
+                com.chatapp.core.model.Message msg = new com.chatapp.core.model.Message();
+                msg.setSenderId(authService.getCurrentUser() != null ? authService.getCurrentUser().getId() : 0);
+                msg.setReceiverId(selectedFriend.getId());
+                msg.setSenderNickname(""); // opcionális, ha van
+                msg.setMsgType("text");
+                msg.setContent(content);
+                msg.setSentDate(java.time.LocalDateTime.now().toString());
+                msg.setDelivered(false);
+                msg.setRead(false);
+                msg.setFromMe(true);
+                messageDao.saveMessage(msg);
+
+                // Eseménylog mentése
+                eventLogDao.logEvent("send_message", java.time.LocalDateTime.now().toString(), "Üzenet elküldve " + selectedFriend.getNickname() + " részére.");
+
+                // Majd szerverre küldjük
                 String token = authService.getCurrentToken();
                 apiService.sendMessage(token, selectedFriend.getId(), "text", content, null);
                 return null;

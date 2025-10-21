@@ -49,6 +49,14 @@ A fő nézet alapvető funkciói, a barátkezelés és a kijelentkezés is műk�
 - A perzisztencia réteg DAO-kon keresztül érhető el, a Presenter csak a modellel kommunikál.
 - A dokumentációkban (README.md, chat_client_execution_plan.md, chat_design.md, stb.) részletezve lett az MVP-integráció és a multiplatform támogatás (Java, Android, .NET/C#).
 
+### 2025.10.21. - Presenter-DAO integráció, barátlista és üzenetek perzisztencia
+
+- A MainPresenter-ben integrálva lett a perzisztencia réteg (DBService, FriendDao, MessageDao).
+- A szerverről letöltött barátokat és üzeneteket először az adatbázisba menti, majd a UI-t mindig a DB-ből frissíti.
+- Az üzenetküldésnél először az adatbázisba menti az üzenetet, majd elküldi a szerverre.
+- A pooling során a szerverről letöltött adatok a DB-be kerülnek, a UI minden esetben a DB-ből olvas.
+- Az adatbázis tartalma az alkalmazás leállítása után is megmarad a `chatapp.db` fájlban.
+
 ### 2025.10.21. - SQLite perzisztencia réteg implementációja
 
 - Elkészült a DBService (adatbázis inicializálás, tábla létrehozás).
