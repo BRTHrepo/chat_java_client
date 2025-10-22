@@ -1,8 +1,19 @@
 package com.chatapp.core.model;
-
+import com.fasterxml.jackson.annotation.JsonAlias;
 public class User {
+
+    /**
+     *  for friend requests and user lists :
+     *       'from_user_id' => $request->from_user_id,
+     *                     'nickname' => $request->fromUser->nickname,
+     *                     'email' => $request->fromUser->email,
+     */
+
+    @JsonAlias({"from_user_id", "id", "user_id","friend_id"})
     private int id;
+
     private String email;
+
     private String nickname;
     private String avatarUrl;
     private String status;
@@ -26,6 +37,12 @@ public class User {
 
     @Override
     public String toString() {
-        return nickname;
+        return "User{" +
+                "id=" + id +
+                ", email='" + email + '\'' +
+                ", nickname='" + nickname + '\'' +
+                ", avatarUrl='" + avatarUrl + '\'' +
+                ", status='" + status + '\'' +
+                '}';
     }
 }

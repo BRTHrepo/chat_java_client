@@ -2,6 +2,7 @@ package com.chatapp.core.service;
 
 import com.chatapp.core.model.ApiError;
 import com.chatapp.core.model.Message;
+import com.chatapp.core.model.SendMessageResponse;
 import com.chatapp.core.model.User;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -75,11 +76,57 @@ public class ApiService {
                 handleUnsuccessfulResponse(response);
             }
             String responseBody = Objects.requireNonNull(response.body()).string();
-            if (returnType == null) {
-                return null; // For void methods
+
+            // If a return type is specified, try to deserialize directly into it.
+            if (returnType != null) {
+                try {
+                    // Attempt to parse the entire response body into the specified returnType.
+                    return gson.fromJson(responseBody, returnType);
+                } catch (JsonSyntaxException e) {
+                    // If direct deserialization fails, it might be an ApiError or an unexpected format.
+                    // Try to parse it as ApiError first.
+                    ApiError apiError = null;
+                    try {
+                        apiError = gson.fromJson(responseBody, ApiError.class);
+                        // If it's an ApiError, throw it.
+                        throw new ApiException(response.code(), apiError);
+                    } catch (JsonSyntaxException eInner) {
+                        // If it's not even a valid ApiError, throw a generic error.
+                        throw new ApiException(500, "Failed to parse response into expected type: " + returnType.getTypeName() + " and not a valid ApiError. Response body: " + responseBody);
+                    }
+                }
+            } else {
+                // Original logic for when returnType is null.
+                // This part is specific and assumes T is List<Message> or ApiError.
+                // It needs to be robust.
+
+                JsonElement jsonElement = gson.fromJson(responseBody, JsonElement.class);
+
+                if (jsonElement.isJsonObject()) {
+                    JsonObject jsonObject = jsonElement.getAsJsonObject();
+                    JsonElement messagesElement = jsonObject.get("messages");
+                    if (messagesElement != null && messagesElement.isJsonArray()) { // Check if messagesElement exists and is an array
+                        Type messageType = new TypeToken<List<Message>>() {}.getType();
+                        // This cast is problematic if T is not List<Message>
+                        return (T) gson.fromJson(messagesElement, messageType);
+                    } else {
+                        // If 'messages' key is missing or not an array, try to parse the whole object as ApiError
+                        ApiError apiError = null;
+                        try {
+                            apiError = gson.fromJson(jsonObject, ApiError.class); // Use the whole jsonObject for ApiError
+                            throw new ApiException(response.code(), apiError); // Use the actual response code
+                        } catch (JsonSyntaxException eInner) {
+                            throw new ApiException(500, "Unexpected JSON structure for messages: 'messages' key missing or not an array, and not a valid ApiError.");
+                        }
+                    }
+                } else if (jsonElement.isJsonPrimitive()) {
+                    System.err.println("API returned a JSON primitive instead of an object for getMessages: " + jsonElement.getAsString());
+                    return null;
+                } else {
+                    throw new ApiException(500, "Unexpected JSON type received for messages: " + jsonElement.getClass().getSimpleName());
+                }
             }
-            return gson.fromJson(responseBody, returnType);
-        } catch (Exception e) {
+        } catch (Exception e) { // This is the outer catch block
             if (e instanceof ApiException) {
                 throw (ApiException) e; // Re-throw the specific exception
             }
@@ -87,8 +134,6 @@ public class ApiService {
             throw new ApiException(503, "Network or parsing error: " + e.getMessage());
         }
     }
-
-
 
     // Új metódus: teljes JSON válasz visszaadása Stringként
     public String registerLoginRaw(String email, String password, String nickname) {
@@ -123,10 +168,12 @@ public class ApiService {
         executeRequest(request, null);
     }
 
-    public void addFriend(String token, String nickname) {
+    public void addFriend(String token,Integer friendId, String nickname,String email) {
         String url = getFullUrl("/index.php/api/addFriend");
         JsonObject json = new JsonObject();
         json.addProperty("nickname", nickname);
+        json.addProperty("friend_id", friendId);
+        json.addProperty("email", email);
 
         RequestBody body = RequestBody.create(json.toString(), MediaType.get("application/json; charset=utf-8"));
         Request request = new Request.Builder()
@@ -151,6 +198,11 @@ public class ApiService {
                 .build();
         executeRequest(request, null);
     }
+
+    // TODO: Implement separate endpoints or logic for accept/decline if needed
+    // For now, assuming 'action' parameter is sufficient for the server.
+    // If "Friend ID is required" error persists for accept, this might need adjustment.
+
 
     public List<User> getFriends(String token) {
         String url = getFullUrl("/index.php/api/getFriends");
@@ -177,6 +229,7 @@ public class ApiService {
             if (jsonElement.isJsonObject()) {
                 JsonObject jsonObject = jsonElement.getAsJsonObject();
                 JsonElement friendsElement = jsonObject.get("friends");
+                System.out.println("Friends JSON Element: " + friendsElement.toString());
                 Type type = new TypeToken<List<User>>() {}.getType();
                 return gson.fromJson(friendsElement, type);
             }
@@ -233,11 +286,17 @@ public class ApiService {
     }
 
 
-    public void sendMessage(String token, int receiverId, String msgType, String content, File mediaFile) {
+    public SendMessageResponse sendMessage(String token, Message message) {
         String url = getFullUrl("/index.php/api/sendMessage");
         MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
-
+        int receiverId = message.getReceiverId();
         builder.addFormDataPart("receiver_id", String.valueOf(receiverId));
+        String msgType = message.getMsgType();
+        String content = message.getContent();
+        File mediaFile = null;
+        if (msgType.equals("image") || msgType.equals("video") || msgType.equals("audio")) {
+            mediaFile = new File(content);
+        }
         builder.addFormDataPart("msg_type", msgType);
 
         if (mediaFile != null && mediaFile.exists()) {
@@ -248,16 +307,18 @@ public class ApiService {
         }
 
         RequestBody body = builder.build();
+        System.out.println("data to send: receiver_id=" + receiverId + ", msg_type=" + msgType + ", content=" + content + ", mediaFile=" + (mediaFile != null ? mediaFile.getName() : "null"));
+        System.out.println("Body content type: " + builder.toString());
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("Authorization", "Bearer " + token)
                 .post(body)
                 .build();
-        executeRequest(request, null);
+        return executeRequest(request, new TypeToken<SendMessageResponse>() {}.getType());
     }
 
     public List<Message> getMessages(String token, List<Integer> confirmedMessageIds, int lastMessageId, String lastRequestDate) {
-        String url = getFullUrl("/getMessages");
+        String url = getFullUrl("/index.php/api/getMessages");
         JsonObject json = new JsonObject();
         if (confirmedMessageIds != null && !confirmedMessageIds.isEmpty()) {
             json.add("confirmed_message_ids", gson.toJsonTree(confirmedMessageIds).getAsJsonArray());
@@ -277,14 +338,39 @@ public class ApiService {
                 handleUnsuccessfulResponse(response);
             }
             String responseBody = Objects.requireNonNull(response.body()).string();
-            JsonObject jsonObject = gson.fromJson(responseBody, JsonObject.class);
-            JsonElement messagesElement = jsonObject.get("messages");
-            Type messageType = new TypeToken<List<Message>>() {}.getType();
-            return gson.fromJson(messagesElement, messageType);
+            JsonElement jsonElement = gson.fromJson(responseBody, JsonElement.class); // Changed from JsonObject
+
+            if (jsonElement.isJsonObject()) {
+                JsonObject jsonObject = jsonElement.getAsJsonObject();
+                JsonElement messagesElement = jsonObject.get("messages");
+                if (messagesElement != null && messagesElement.isJsonArray()) { // Check if messagesElement exists and is an array
+                    Type messageType = new TypeToken<List<Message>>() {}.getType();
+                    return gson.fromJson(messagesElement, messageType);
+                } else {
+                    // If 'messages' key is missing or not an array, try to parse the whole object as ApiError
+                    ApiError apiError = null;
+                    try {
+                        apiError = gson.fromJson(jsonObject, ApiError.class); // Use the whole jsonObject for ApiError
+                        // If successfully parsed as ApiError, throw it
+                        throw new ApiException(response.code(), apiError); // Use the actual response code
+                    } catch (JsonSyntaxException e) {
+                        // If it's not a valid ApiError, throw a generic error indicating unexpected structure
+                        throw new ApiException(500, "Unexpected JSON structure for messages: 'messages' key missing or not an array, and not a valid ApiError.");
+                    }
+                }
+            } else if (jsonElement.isJsonPrimitive()) {
+                // Handle the case where the response is a primitive.
+                System.err.println("API returned a JSON primitive instead of an object for getMessages: " + jsonElement.getAsString());
+                return new java.util.ArrayList<>(); // Return empty list
+            } else {
+                // Handle other unexpected JSON types if necessary
+                throw new ApiException(500, "Unexpected JSON type received for messages: " + jsonElement.getClass().getSimpleName());
+            }
         } catch (Exception e) {
             if (e instanceof ApiException) {
-                throw (ApiException) e;
+                throw (ApiException) e; // Re-throw the specific exception
             }
+            // Wrap any other exception (like IOException) into an ApiException
             throw new ApiException(503, "Network or parsing error: " + e.getMessage());
         }
     }

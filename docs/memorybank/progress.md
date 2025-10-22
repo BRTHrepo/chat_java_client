@@ -59,17 +59,3 @@ The core functionalities of the main view, friend management, and logout are ope
     *   Users can view and edit their name and avatar URL.
     *   Modifications are updated only in the local database and memory, as the server-side API for profile data modification is not yet supported.
     *   A "Profile..." menu item in the main menu opens the editor view.
-
-## Next Steps:
-
-1.  **Friend Management Features:**
-    *   Display and handle friend requests (accept/reject).
-    *   Add new friends.
-2.  **Profile View:**
-    *   Display user profile data.
-    *   Enable profile editing.
-3.  **Logout:**
-    *   Implement the `handleLogout` method.
-    *   Close the main view and display the login window again.
-4.  **Real-time Update:**
-    *   Implement periodic message polling (no WebSocket) for immediate message updates.

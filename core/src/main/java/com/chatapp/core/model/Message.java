@@ -112,4 +112,22 @@ public class Message {
     public void setFriendRequestId(int friendRequestId) {
         this.friendRequestId = friendRequestId;
     }
+
+    @Override
+    public String toString() {
+        return "Message{" +
+                "read=" + read +
+                ", id=" + id +
+                ", senderId=" + senderId +
+                ", senderNickname='" + senderNickname + '\'' +
+                ", receiverId=" + receiverId +
+                ", msgType='" + msgType + '\'' +
+                ", content='" + content + '\'' +
+                ", sentDate='" + sentDate + '\'' +
+                ", delivered=" + delivered +
+                ", readStatus=" + readStatus +
+                ", isFromMe=" + isFromMe +
+                ", friendRequestId=" + friendRequestId +
+                '}';
+    }
 }

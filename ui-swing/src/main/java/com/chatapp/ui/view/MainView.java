@@ -25,6 +25,7 @@ public class MainView extends JFrame {
     private JButton declineFriendRequestButton;
     private JTextField addFriendField;
     private JButton addFriendButton;
+    private User currentSelectedFriend; // Variable to store the currently selected friend
 
     public MainView() {
         setTitle("Chat Application");
@@ -204,5 +205,17 @@ public class MainView extends JFrame {
 
     public void addLogoutListener(ActionListener listener) {
         logoutMenuItem.addActionListener(listener);
+    }
+
+    /**
+     * Returns the currently selected friend.
+     * @return The selected User object, or null if none is selected.
+     */
+    public User getCurrentSelectedFriend() {
+        return currentSelectedFriend;
+    }
+
+    public void setCurrentSelectedFriend(User selectedFriend) {
+        currentSelectedFriend = selectedFriend;
     }
 }

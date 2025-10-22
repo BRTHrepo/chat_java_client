@@ -1,5 +1,6 @@
 package com.chatapp.ui.presenter;
 
+import com.chatapp.core.model.Message;
 import com.chatapp.core.model.User;
 import com.chatapp.core.service.ApiService;
 import com.chatapp.core.service.ApiException;
@@ -9,7 +10,9 @@ import com.chatapp.ui.view.MainView;
 import com.chatapp.ui.util.ErrorMessageTranslator;
 
 import javax.swing.*;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -130,9 +133,13 @@ public class MainPresenter {
     private void attachListeners() {
         view.addFriendSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                User selectedFriend = view.getSelectedFriend();
+                view.setCurrentSelectedFriend(   view.getSelectedFriend());
+                User selectedFriend = view.getCurrentSelectedFriend(); // Use the new getter
                 if (selectedFriend != null) {
                     loadMessages(selectedFriend.getId());
+                } else {
+                    // If no friend is selected, clear the chat area
+                    view.setChatMessages(java.util.Collections.emptyList());
                 }
             }
         });
@@ -185,6 +192,9 @@ public class MainPresenter {
             protected void done() {
                 try {
                     List<User> friends = get();
+                    for (User f : friends) {
+                        System.out.println("Loaded friend: " + f.toString());
+                    }
                     view.setFriendsList(friends);
                 } catch (InterruptedException | ExecutionException e) {
                     Throwable cause = e.getCause();
@@ -206,35 +216,23 @@ public class MainPresenter {
             @Override
             protected List<User> doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
-                List<User> requestsFromServer = apiService.getFriendRequests(token);
+                List<User> requestsFromServer = apiService.getFriendRequests(token); // Ez a lista tartalmazza a User objektumokat a nickname-kel
 
-                // DB frissítés: törlés és mentés
-                friendRequestDao.deleteAllFriendRequests();
-                for (User user : requestsFromServer) {
-                    // Feltételezzük, hogy a bejelentkezett user a címzett (toUserId)
-                    int fromUserId = user.getId();
-                    int toUserId = authService.getCurrentUser() != null ? authService.getCurrentUser().getId() : 0;
-                    String requestDate = ""; // Ha van dátum, azt is át kell adni
-                    friendRequestDao.saveFriendRequest(fromUserId, toUserId, requestDate);
-                }
+                // A barátkérések megjelenítéséhez szükséges felhasználói adatok (pl. nickname)
+                // már elérhetők a requestsFromServer listában.
+                // A korábbi implementáció csak az ID-kat mentette el az adatbázisba,
+                // ami miatt a felhasználónév nem jelent meg.
+                // A UI-nak átadott listát most közvetlenül a szerverről kapott adatokkal töltjük fel.
+                // A perzisztencia réteg frissítése (ha szükséges) külön feladat lehet.
 
-                // DB-ből olvasunk, de a UI User listát vár, ezért konvertálni kell
-                java.util.List<com.chatapp.core.service.FriendRequestDao.FriendRequestRecord> dbRequests = friendRequestDao.getAllFriendRequests();
-                java.util.List<User> userList = new java.util.ArrayList<>();
-                for (com.chatapp.core.service.FriendRequestDao.FriendRequestRecord req : dbRequests) {
-                    User u = new User();
-                    u.setId(req.fromUserId);
-                    // További mezők feltöltése, ha szükséges
-                    userList.add(u);
-                }
-                return userList;
+                return requestsFromServer; // Visszaadjuk a szerverről kapott User objektumokat
             }
 
             @Override
             protected void done() {
                 try {
-                    List<User> requests = get();
-                    view.setFriendRequests(requests);
+                    List<User> requests = get(); // Ez most már a requestsFromServer lesz
+                    view.setFriendRequests(requests); // Ez most már helyesen fogja megjeleníteni a nickname-eket
                 } catch (InterruptedException | ExecutionException e) {
                     Throwable cause = e.getCause();
                     String errorMessage;
@@ -285,7 +283,7 @@ public class MainPresenter {
     }
 
     public void handleSendMessage(String content) {
-        User selectedFriend = view.getSelectedFriend();
+        User selectedFriend = view.getCurrentSelectedFriend(); // Use the new getter
         if (selectedFriend == null) {
             view.showError("Please select a friend to send a message to.");
             return;
@@ -294,37 +292,45 @@ public class MainPresenter {
             return; // Don't send empty messages
         }
 
-        new SwingWorker<Void, Void>() {
+        new SwingWorker<com.chatapp.core.model.SendMessageResponse, Void>() {
             @Override
-            protected Void doInBackground() throws Exception {
+            protected com.chatapp.core.model.SendMessageResponse doInBackground() throws Exception {
                 // Először DB-be mentjük az üzenetet
-                com.chatapp.core.model.Message msg = new com.chatapp.core.model.Message();
+                Message msg = new Message();
                 msg.setSenderId(authService.getCurrentUser() != null ? authService.getCurrentUser().getId() : 0);
                 msg.setReceiverId(selectedFriend.getId());
                 msg.setSenderNickname(""); // opcionális, ha van
                 msg.setMsgType("text");
                 msg.setContent(content);
-                msg.setSentDate(java.time.LocalDateTime.now().toString());
+                msg.setSentDate(LocalDateTime.now().toString());
                 msg.setDelivered(false);
                 msg.setRead(false);
                 msg.setFromMe(true);
                 messageDao.saveMessage(msg);
 
                 // Eseménylog mentése
-                eventLogDao.logEvent("send_message", java.time.LocalDateTime.now().toString(), "Üzenet elküldve " + selectedFriend.getNickname() + " részére.");
+                eventLogDao.logEvent("send_message", LocalDateTime.now().toString(), "Üzenet elküldve " + selectedFriend.getNickname() + " részére.");
 
                 // Majd szerverre küldjük
                 String token = authService.getCurrentToken();
-                apiService.sendMessage(token, selectedFriend.getId(), "text", content, null);
-                return null;
+                System.out.println("msg to send: " + msg.toString());
+                return apiService.sendMessage(token, msg); // Store the response
             }
 
             @Override
             protected void done() {
                 try {
-                    get(); // Check for exceptions
-                    view.clearMessageText();
-                    loadMessages(selectedFriend.getId()); // Refresh messages
+                    com.chatapp.core.model.SendMessageResponse response = get(); // Get the response
+                    if (response != null) {
+                        // Handle successful response, e.g., log it or update UI if needed
+                        System.out.println("Message sent successfully: " + response.toString());
+                        view.clearMessageText();
+                        loadMessages(selectedFriend.getId()); // Refresh messages
+                    } else {
+                        // This case should ideally not happen if ApiService throws ApiException on error
+                        // but as a fallback, show a generic error.
+                        view.showError("Failed to send message. Unknown error occurred.");
+                    }
                 } catch (InterruptedException | ExecutionException e) {
                     Throwable cause = e.getCause();
                     String errorMessage;
@@ -378,7 +384,12 @@ public class MainPresenter {
             @Override
             protected Void doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
-                apiService.deleteFriend(token, user.getId(), action);
+                if (Objects.equals( "decline",action)) {
+                    apiService.deleteFriend(token, user.getId(), action);
+                }
+                if (Objects.equals( "accept",action)) {
+                    apiService.addFriend(token, user.getId(), user.getNickname(), user.getEmail());
+                }
                 return null;
             }
 
@@ -405,8 +416,8 @@ public class MainPresenter {
     }
 
     private void handleAddFriend() {
-        String nickname = view.getAddFriendNickname();
-        if (nickname.trim().isEmpty()) {
+        String email = view.getAddFriendNickname();
+        if (email.trim().isEmpty()) {
             view.showError("Please enter a nickname to add.");
             return;
         }
@@ -415,7 +426,7 @@ public class MainPresenter {
             @Override
             protected Void doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
-                apiService.addFriend(token, nickname);
+                apiService.addFriend(token,null, null,email);
                 return null;
             }
 
@@ -423,7 +434,7 @@ public class MainPresenter {
             protected void done() {
                 try {
                     get(); // Check for exceptions
-                    view.showSuccess("Friend request sent to " + nickname + ".");
+                    view.showSuccess("Friend request sent to " + email + ".");
                     view.clearAddFriendNickname();
                 } catch (InterruptedException | ExecutionException e) {
                     Throwable cause = e.getCause();
