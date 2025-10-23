@@ -92,3 +92,12 @@ A customPrefsNode változó eltávolítható, mert a preferences node kezelésé
 A korábbi "Következő lépések" szekcióban felsorolt feladatok (Barátkezelés funkciók, Profil nézet, Kijelentkezés) már implementálva lettek, és a fenti "Jelenlegi állapot" részben dokumentálva. A legutóbbi fejlesztés, a több klienspéldány egyedi beállításokkal történő támogatása is elkészült.
 
 Jelenleg nincsenek további tervezett lépések.
+
+### 2025.10.23. - Chat UI fejlesztések: státusz színezés, betűméret, státuszlogika
+
+- A MainView chatArea komponense JTextPane-re lett cserélve, így támogatott a soronkénti színezés és formázás.
+- A setChatMessages metódus StyledDocument-et használ: ahol az üzenet confirmed=false, ott a szöveg piros színnel jelenik meg, egyébként fekete.
+- A betűméret állítása (View menü) mostantól a chatArea-ra is érvényes, a színezés és a méret együtt működik.
+- A Message osztály confirmed státusza alapján történik a színezés, így a felhasználó azonnal látja, mely üzenetek státusza bizonytalan.
+- A not_updated_ids logika pontosítása: csak a fogadó fél tudja confirmed=true-ra állítani az üzenetet, a küldő nem.
+- A dokumentációk (README.md, mainview_design.md, chat_design.md, chat_client_execution_plan.md) is frissülnek a fenti változásokkal.

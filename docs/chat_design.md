@@ -86,3 +86,13 @@ chatPanel.addAttachMediaListener(e -> presenter.handleAttachMedia(file));
 - Chat panel automatikus görgetése új üzenetnél.
 - Média csatolásnál előnézet, validáció.
 - Minden művelet után visszajelzés a felhasználónak.
+
+---
+
+## 2025.10.23. - Chat státusz, színezés, technikai újdonságok
+
+- A chat ablakban a nem megerősített (confirmed=false) üzenetek piros színnel jelennek meg, a megerősítettek feketével.
+- A betűméret állítása (View menü) mostantól a chatArea-ra is érvényes, a színezés és a méret együtt működik.
+- A Message osztály confirmed státusza alapján történik a színezés, így a felhasználó azonnal látja, mely üzenetek státusza bizonytalan.
+- A not_updated_ids logika pontosítása: csak a fogadó fél tudja confirmed=true-ra állítani az üzenetet, a küldő nem.
+- Technikai háttér: a chatArea JTextPane-re lett cserélve, StyledDocument-et használ, így támogatott a soronkénti színezés és formázás.

@@ -83,3 +83,13 @@ mainView.addSendMessageListener(e -> presenter.handleSendMessage(content, mediaF
 
 - Profil szerkesztés, kijelentkezés, beállítások külön panelen.
 - Minden művelet után visszajelzés a felhasználónak.
+
+---
+
+## 2025.10.23. - Chat UI újdonságok
+
+- A chatArea JTextPane-re lett cserélve, így támogatott a soronkénti színezés és formázás (StyledDocument).
+- A setChatMessages metódus minden üzenetet a confirmed státusz alapján színez: ha confirmed=false, piros színnel jelenik meg, egyébként fekete.
+- A View menüben a betűméret növelése/csökkentése mostantól a chatArea-ra is érvényes, a színezés és a méret együtt működik.
+- A Message osztály confirmed státusza alapján történik a színezés, így a felhasználó azonnal látja, mely üzenetek státusza bizonytalan.
+- A not_updated_ids logika pontosítása: csak a fogadó fél tudja confirmed=true-ra állítani az üzenetet, a küldő nem.

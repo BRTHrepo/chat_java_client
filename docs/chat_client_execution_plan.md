@@ -82,3 +82,13 @@ Részletes fejlesztési terv: lásd [docs/error_handling_design.md](error_handli
 ## 5. Záró megjegyzések
 
 Az ütemterv rugalmas, a fejlesztés során felmerülő problémák és visszajelzések alapján módosítható. A cél egy stabil, jól használható chat kliens elkészítése, amely minden funkciót és hibakezelést átláthatóan, egységesen valósít meg.
+
+---
+
+## 2025.10.23. - Chat UI és státusz újdonságok
+
+- A chat ablakban a nem megerősített (confirmed=false) üzenetek piros színnel jelennek meg, a megerősítettek feketével.
+- A betűméret állítása (View menü) mostantól a chatArea-ra is érvényes, a színezés és a méret együtt működik.
+- A Message osztály confirmed státusza alapján történik a színezés, így a felhasználó azonnal látja, mely üzenetek státusza bizonytalan.
+- A not_updated_ids logika pontosítása: csak a fogadó fél tudja confirmed=true-ra állítani az üzenetet, a küldő nem.
+- Technikai háttér: a chatArea JTextPane-re lett cserélve, StyledDocument-et használ, így támogatott a soronkénti színezés és formázás.
