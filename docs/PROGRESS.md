@@ -24,6 +24,8 @@ Ez a dokumentum a Java kliensalkalmazás felépítését és a fejlesztési foly
 
 A fő nézet alapvető funkciói, a barátkezelés és a kijelentkezés is működik. A felhasználó sikeres bejelentkezés után látja a barátainak és a barátkéréseinek listáját, tud üzenetet küldeni. A hálózati kérések aszinkron módon, a UI blokkolása nélkül futnak. A JSON feldolgozási hibák javítva lettek.
 
+A MainPresenter-ben minden API hívás külön AtomicBoolean flag-et használ, így a különböző műveletek egymástól függetlenül, párhuzamosan is futhatnak.
+
 ### 2025.10.21. - Login tokenkezelés javítása
 
 - A szerver a login válaszban a JWT tokent külön kulcsként (`"token"`) küldi.
@@ -82,6 +84,8 @@ A probléma megoldására az alkalmazás módosításra került, hogy minden kli
 - A szerver URL lekérdezése most már az új `ConfigurationPresenter.getServerUrlForInstance(instanceId)` statikus metódussal történik, amely az adott `instanceId`-hez tartozó beállításokat használja.
 
 Ezek a módosítások lehetővé teszik több klienspéldány egyidejű futtatását, mindegyik saját, elkülönített beállításokkal.
+
+A customPrefsNode változó eltávolítható, mert a preferences node kezeléséhez már nincs rá szükség.
 
 ## Következő lépések
 

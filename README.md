@@ -45,6 +45,11 @@ A probléma megoldására az alkalmazás módosításra került, hogy minden kli
 - A `ConfigurationPresenter` konstruktora most egyedi `instanceId` paramétert fogad el.
 - Ezt az `instanceId`-t használja a `Preferences.userNodeForPackage(ConfigurationPresenter.class).node(this.instanceId)` hívással egy példány-specifikus preferencia csomópont létrehozására.
 - A `Main` osztályban minden új klienspéldány indításakor egyedi `UUID` generálódik, amely az `instanceId`-ként kerül átadásra a `ConfigurationPresenter` konstruktorának.
+- Az `AuthService` példányosításakor is egyedi node nevet adunk át:  
+  ```java
+  String uniqueNode = java.util.UUID.randomUUID().toString();
+  AuthService authService = new AuthService(null, uniqueNode);
+  ```
 - A szerver URL lekérdezése most már az új `ConfigurationPresenter.getServerUrlForInstance(instanceId)` statikus metódussal történik, amely az adott `instanceId`-hez tartozó beállításokat használja.
 
 Ezek a módosítások lehetővé teszik több klienspéldány egyidejű futtatását, mindegyik saját, elkülönített beállításokkal.
