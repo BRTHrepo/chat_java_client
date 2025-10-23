@@ -14,7 +14,7 @@ public class AuthService {
     private static final String PREFS_PASSWORD_KEY = "chatapp_password";
     private static final String PREFS_SERVER_URL_KEY = "chatapp_server_url";
 
-    private final OkHttpClient client;
+
     private final Gson gson;
     private final Preferences prefs;
 
@@ -23,10 +23,17 @@ public class AuthService {
     private ApiService apiService;
 
     public AuthService(ApiService apiService) {
+        this(apiService, null);
+    }
+
+    public AuthService(ApiService apiService, String prefsNodeName) {
         this.apiService = apiService;
-        this.client = new OkHttpClient();
         this.gson = new Gson();
-        this.prefs = Preferences.userNodeForPackage(AuthService.class);
+        if (prefsNodeName != null && !prefsNodeName.isEmpty()) {
+            this.prefs = Preferences.userRoot().node("chatapp/" + prefsNodeName);
+        } else {
+            this.prefs = Preferences.userNodeForPackage(AuthService.class);
+        }
     }
 
     public User getCurrentUser() {

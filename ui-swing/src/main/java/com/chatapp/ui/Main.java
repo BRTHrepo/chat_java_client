@@ -24,7 +24,8 @@ public class Main {
             }
 
             // Initialize core services
-            AuthService authService = new AuthService(null); // ApiService will be set after server URL is configured
+            String uniqueNode = java.util.UUID.randomUUID().toString();
+            AuthService authService = new AuthService(null, uniqueNode); // ApiService will be set after server URL is configured
             authService.loadSession(); // Load any saved session
 
             // Generate a unique instance ID for this client
