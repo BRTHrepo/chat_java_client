@@ -1,21 +1,33 @@
 package com.chatapp.core.service;
 
+import java.io.File;
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 public class DBService {
-    private static final String DB_URL = "jdbc:sqlite:chatapp.db";
     private Connection connection;
 
     public DBService() {
         try {
-            connection = DriverManager.getConnection(DB_URL);
+            String dbPath = getDatabasePath(); // Új metódus hívása
+            connection = DriverManager.getConnection(dbPath);
             initializeTables();
-        } catch (SQLException e) {
+        } catch (SQLException | URISyntaxException e) { // URISyntaxException ismételt kivétel
             throw new RuntimeException("Failed to connect to SQLite database", e);
         }
+    }
+
+    private String getDatabasePath() throws URISyntaxException {
+        // A JAR fájl elérési útjának lekérése
+        String jarPath = DBService.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+        File jarFile = new File(jarPath);
+        File jarDir = jarFile.getParentFile(); // A JAR fájlt tartalmazó könyvtár
+
+        // Az adatbázisfájl elérési útjának felépítése a JAR könyvtárához képest
+        return "jdbc:sqlite:" + jarDir.getAbsolutePath() + File.separator + "chatapp.db";
     }
 
     private void initializeTables() throws SQLException {
@@ -32,7 +44,8 @@ public class DBService {
                 "sent_date TEXT," +
                 "delivered INTEGER," +
                 "read_status INTEGER," +
-                "is_from_me INTEGER" +
+                "is_from_me INTEGER," +
+                "server_id  INTEGER UNIQUE" +
                 ")"
             );
             // Barátok tábla

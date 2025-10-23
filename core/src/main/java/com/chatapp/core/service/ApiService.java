@@ -1,9 +1,6 @@
 package com.chatapp.core.service;
 
-import com.chatapp.core.model.ApiError;
-import com.chatapp.core.model.Message;
-import com.chatapp.core.model.SendMessageResponse;
-import com.chatapp.core.model.User;
+import com.chatapp.core.model.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -317,7 +314,7 @@ public class ApiService {
         return executeRequest(request, new TypeToken<SendMessageResponse>() {}.getType());
     }
 
-    public List<Message> getMessages(String token, List<Integer> confirmedMessageIds, int lastMessageId, String lastRequestDate) {
+    public List<Message> getMessages(String token, List<Integer> confirmedMessageIds, Integer lastMessageId, String lastRequestDate) {
         String url = getFullUrl("/index.php/api/getMessages");
         JsonObject json = new JsonObject();
         if (confirmedMessageIds != null && !confirmedMessageIds.isEmpty()) {
@@ -334,18 +331,46 @@ public class ApiService {
                 .build();
         // Special handling for nested JSON
         try (Response response = client.newCall(request).execute()) {
+            System.out.println("Response received for getMessages: " + response.toString());
             if (!response.isSuccessful()) {
                 handleUnsuccessfulResponse(response);
             }
             String responseBody = Objects.requireNonNull(response.body()).string();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                System.out.println("Empty response body for getMessages.");
+                throw new ApiException(500, "API response was empty or invalid JSON");
+            }
             JsonElement jsonElement = gson.fromJson(responseBody, JsonElement.class); // Changed from JsonObject
 
+            System.out.println("Response body for getMessages: " + responseBody);
+            System.out.println("Parsed JSON Element for getMessages: " + jsonElement.toString());
             if (jsonElement.isJsonObject()) {
                 JsonObject jsonObject = jsonElement.getAsJsonObject();
                 JsonElement messagesElement = jsonObject.get("messages");
+                System.out.println("Messages JSON Element: " + (messagesElement != null ? messagesElement.toString() : "null"));
                 if (messagesElement != null && messagesElement.isJsonArray()) { // Check if messagesElement exists and is an array
-                    Type messageType = new TypeToken<List<Message>>() {}.getType();
-                    return gson.fromJson(messagesElement, messageType);
+                    Type messageType = new TypeToken<List<GetMessageResponse>>() {}.getType();
+                    List<GetMessageResponse> l = gson.fromJson(messagesElement, messageType);
+                    System.out.println("Deserialized GetMessageResponse list: " + l.toString());
+                    // Convert GetMessageResponse to Message
+                    List<Message> messages = new java.util.ArrayList<>();
+                    for (GetMessageResponse gmr : l) {
+                        Message msg = new Message();
+                        msg.setId(0);
+                        msg.setServerId(gmr.getMessage_id()); // Assuming serverID is the same as message_id
+                        msg.setSenderId(gmr.getSender_id());
+                        msg.setReceiverId(gmr.getReceiver_id());
+                        msg.setSenderNickname(gmr.getNickname());
+                        msg.setMsgType(gmr.getMsg_type());
+                        msg.setContent(gmr.getContent());
+                        msg.setMedia_info(gmr.getMedia_info());
+                        msg.setSentDate(gmr.getSent_date());
+                        msg.setDelivered(gmr.isDelivered());
+                        msg.setReadStatus(gmr.isRead_status());
+                        msg.setFromMe(gmr.isIs_from_me());
+                        messages.add(msg);
+                    }
+                    return messages;
                 } else {
                     // If 'messages' key is missing or not an array, try to parse the whole object as ApiError
                     ApiError apiError = null;

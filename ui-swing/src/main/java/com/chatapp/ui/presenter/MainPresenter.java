@@ -5,11 +5,15 @@ import com.chatapp.core.model.User;
 import com.chatapp.core.service.ApiService;
 import com.chatapp.core.service.ApiException;
 import com.chatapp.core.service.AuthService;
+import com.chatapp.core.service.FriendDao;
 import com.chatapp.ui.view.LoginView;
 import com.chatapp.ui.view.MainView;
 import com.chatapp.ui.util.ErrorMessageTranslator;
 
 import javax.swing.*;
+import java.awt.Component; // Explicitly import Component
+import java.awt.Container;
+import java.awt.Font; // Explicitly import Font
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -19,10 +23,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class MainPresenter {
 
     private final MainView view;
+    // Globális API hívás flag
+    private final java.util.concurrent.atomic.AtomicBoolean isApiCallRunning = new java.util.concurrent.atomic.AtomicBoolean(false);
     private final AuthService authService;
     private final ApiService apiService;
 
@@ -52,6 +59,7 @@ public class MainPresenter {
         attachListeners();
         addPollingListeners();
         addProfileMenuListener();
+        addFontSizeMenuListeners(); // Add listeners for font size menu items
         startPolling();
 
         // Polling szál leállítása ablak bezárásakor is
@@ -87,6 +95,10 @@ public class MainPresenter {
             authService.refreshTokenIfNeeded();
             loadFriends();
             loadFriendRequests();
+            User selectedFriend = view.getCurrentSelectedFriend();
+            Integer selectedFriendId = selectedFriend != null ? selectedFriend.getId() : null;
+            loadMessages(selectedFriendId);
+
             // Ha szükséges, loadMessages is hívható itt
         } finally {
             isPolling.set(false);
@@ -133,14 +145,18 @@ public class MainPresenter {
     private void attachListeners() {
         view.addFriendSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                view.setCurrentSelectedFriend(   view.getSelectedFriend());
-                User selectedFriend = view.getCurrentSelectedFriend(); // Use the new getter
-                if (selectedFriend != null) {
-                    loadMessages(selectedFriend.getId());
-                } else {
-                    // If no friend is selected, clear the chat area
-                    view.setChatMessages(java.util.Collections.emptyList());
+
+                if (view.getSelectedFriend() != null) {
+                    view.setCurrentSelectedFriend(   view.getSelectedFriend());
+                    User selectedFriend = view.getCurrentSelectedFriend(); // Use the new getter
+                    if (selectedFriend != null) {
+                        loadMessages(selectedFriend.getId());
+                    } else {
+                        // If no friend is selected, clear the chat area
+                       // view.setChatMessages(java.util.Collections.emptyList());
+                    }
                 }
+
             }
         });
 
@@ -165,12 +181,70 @@ public class MainPresenter {
         });
     }
 
+    private void addFontSizeMenuListeners() {
+        view.getIncreaseFontSizeMenuItem().addActionListener(e -> handleIncreaseFontSize());
+        view.getDecreaseFontSizeMenuItem().addActionListener(e -> handleDecreaseFontSize());
+    }
+
+    private void handleIncreaseFontSize() {
+        adjustFontSize(1.1f); // Increase font size by 10%
+    }
+
+    private void handleDecreaseFontSize() {
+        adjustFontSize(0.9f); // Decrease font size by 10%
+    }
+
+    private void adjustFontSize(float scaleFactor) {
+        // Rekurzívan minden komponensre alkalmazzuk a fontméret-módosítást
+        adjustFontRecursively(view, scaleFactor);
+    }
+
+    /**
+     * Rekurzívan végigmegy minden komponensen és módosítja a fontméretet.
+     */
+    private void adjustFontRecursively(Component component, float scaleFactor) {
+        if (component == null) return;
+        Font font = component.getFont();
+        if (font != null) {
+            float newSize = font.getSize2D() * scaleFactor;
+            component.setFont(font.deriveFont(newSize));
+        }
+        if (component instanceof JMenu) {
+            JMenu menu = (JMenu) component;
+            for (int i = 0; i < menu.getItemCount(); i++) {
+                JMenuItem item = menu.getItem(i);
+                if (item != null) adjustFontRecursively(item, scaleFactor);
+            }
+        }
+        if (component instanceof JMenuBar) {
+            JMenuBar bar = (JMenuBar) component;
+            for (int i = 0; i < bar.getMenuCount(); i++) {
+                JMenu menu = bar.getMenu(i);
+                if (menu != null) adjustFontRecursively(menu, scaleFactor);
+            }
+        }
+        if (component instanceof Container) {
+            for (Component child : ((Container) component).getComponents()) {
+                adjustFontRecursively(child, scaleFactor);
+            }
+        }
+    }
+
+    private void adjustComponentFont(Component component, float scaleFactor) {
+        if (component != null) {
+            Font currentFont = component.getFont();
+            float newSize = currentFont.getSize() * scaleFactor;
+            component.setFont(currentFont.deriveFont(newSize));
+        }
+    }
+
     public void loadInitialData() {
         loadFriends();
         loadFriendRequests();
     }
 
     private void loadFriends() {
+        if (isApiCallRunning.getAndSet(true)) return;
         new SwingWorker<List<User>, Void>() {
             @Override
             protected List<User> doInBackground() throws Exception {
@@ -206,24 +280,20 @@ public class MainPresenter {
                     }
                     view.showError(errorMessage);
                     e.printStackTrace();
+                } finally {
+                    isApiCallRunning.set(false);
                 }
             }
         }.execute();
     }
 
     private void loadFriendRequests() {
+        if (isApiCallRunning.getAndSet(true)) return;
         new SwingWorker<List<User>, Void>() {
             @Override
             protected List<User> doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
                 List<User> requestsFromServer = apiService.getFriendRequests(token); // Ez a lista tartalmazza a User objektumokat a nickname-kel
-
-                // A barátkérések megjelenítéséhez szükséges felhasználói adatok (pl. nickname)
-                // már elérhetők a requestsFromServer listában.
-                // A korábbi implementáció csak az ID-kat mentette el az adatbázisba,
-                // ami miatt a felhasználónév nem jelent meg.
-                // A UI-nak átadott listát most közvetlenül a szerverről kapott adatokkal töltjük fel.
-                // A perzisztencia réteg frissítése (ha szükséges) külön feladat lehet.
 
                 return requestsFromServer; // Visszaadjuk a szerverről kapott User objektumokat
             }
@@ -243,30 +313,35 @@ public class MainPresenter {
                     }
                     view.showError(errorMessage);
                     e.printStackTrace();
+                } finally {
+                    isApiCallRunning.set(false);
                 }
             }
         }.execute();
     }
 
-    public void loadMessages(int friendId) {
-        new SwingWorker<List<com.chatapp.core.model.Message>, Void>() {
+    public void loadMessages(Integer friendId) {
+        if (isApiCallRunning.getAndSet(true)) return;
+        new SwingWorker<List<Message>, Void>() {
             @Override
-            protected List<com.chatapp.core.model.Message> doInBackground() throws Exception {
+            protected List<Message> doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
-                List<com.chatapp.core.model.Message> messagesFromServer = apiService.getMessages(token, null, friendId, "");
-                // DB frissítés: opcionálisan törölhetjük a partnerhez tartozó üzeneteket, de most csak beszúrjuk az újakat
-                for (com.chatapp.core.model.Message msg : messagesFromServer) {
+                List<Message> messagesFromServer = apiService.getMessages(token, null,  null,"");
+                System.out.println("Messages from server for friendId " +  ": " + messagesFromServer);
+                for (Message msg : messagesFromServer) {
                     messageDao.saveMessage(msg);
                 }
-                // Mindig DB-ből olvasunk a UI-hoz
                 return messageDao.getMessagesWithFriend(friendId);
             }
 
             @Override
             protected void done() {
                 try {
-                    List<com.chatapp.core.model.Message> messages = get();
+                    List<com.chatapp.core.model.Message> messages =  get();
+                    System.out.println("Messages to display in MainPresenter: " + messages);
+                   // view.setCurrentSelectedFriend(  MainPresenter.this.friendDao.getFriendByIdStatic( friendId));
                     view.setChatMessages(messages);
+
                 } catch (InterruptedException | ExecutionException e) {
                     Throwable cause = e.getCause();
                     String errorMessage;
@@ -277,6 +352,8 @@ public class MainPresenter {
                     }
                     view.showError(errorMessage);
                     e.printStackTrace();
+                } finally {
+                    isApiCallRunning.set(false);
                 }
             }
         }.execute();
@@ -291,12 +368,12 @@ public class MainPresenter {
         if (content.trim().isEmpty()) {
             return; // Don't send empty messages
         }
-
+        if (isApiCallRunning.getAndSet(true)) return;
+        AtomicReference< Message> msgA = new AtomicReference<>(new Message());
         new SwingWorker<com.chatapp.core.model.SendMessageResponse, Void>() {
             @Override
             protected com.chatapp.core.model.SendMessageResponse doInBackground() throws Exception {
-                // Először DB-be mentjük az üzenetet
-                Message msg = new Message();
+                Message msg = msgA.get();
                 msg.setSenderId(authService.getCurrentUser() != null ? authService.getCurrentUser().getId() : 0);
                 msg.setReceiverId(selectedFriend.getId());
                 msg.setSenderNickname(""); // opcionális, ha van
@@ -306,12 +383,10 @@ public class MainPresenter {
                 msg.setDelivered(false);
                 msg.setRead(false);
                 msg.setFromMe(true);
-                messageDao.saveMessage(msg);
 
-                // Eseménylog mentése
+
                 eventLogDao.logEvent("send_message", LocalDateTime.now().toString(), "Üzenet elküldve " + selectedFriend.getNickname() + " részére.");
 
-                // Majd szerverre küldjük
                 String token = authService.getCurrentToken();
                 System.out.println("msg to send: " + msg.toString());
                 return apiService.sendMessage(token, msg); // Store the response
@@ -322,13 +397,13 @@ public class MainPresenter {
                 try {
                     com.chatapp.core.model.SendMessageResponse response = get(); // Get the response
                     if (response != null) {
-                        // Handle successful response, e.g., log it or update UI if needed
+                     //   Message msg = msgA.get();
+                     //   msg.setServerId(response.getMessage_id()); // Set the server ID from the response
+                    //    messageDao.saveMessage(msg);
                         System.out.println("Message sent successfully: " + response.toString());
                         view.clearMessageText();
                         loadMessages(selectedFriend.getId()); // Refresh messages
                     } else {
-                        // This case should ideally not happen if ApiService throws ApiException on error
-                        // but as a fallback, show a generic error.
                         view.showError("Failed to send message. Unknown error occurred.");
                     }
                 } catch (InterruptedException | ExecutionException e) {
@@ -341,6 +416,8 @@ public class MainPresenter {
                     }
                     view.showError(errorMessage);
                     e.printStackTrace();
+                } finally {
+                    isApiCallRunning.set(false);
                 }
             }
         }.execute();
@@ -380,6 +457,7 @@ public class MainPresenter {
     }
 
     private void handleFriendRequestAction(User user, String action) {
+        if (isApiCallRunning.getAndSet(true)) return;
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
@@ -410,6 +488,8 @@ public class MainPresenter {
                     }
                     view.showError(errorMessage);
                     e.printStackTrace();
+                } finally {
+                    isApiCallRunning.set(false);
                 }
             }
         }.execute();
@@ -421,7 +501,7 @@ public class MainPresenter {
             view.showError("Please enter a nickname to add.");
             return;
         }
-
+        if (isApiCallRunning.getAndSet(true)) return;
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
@@ -446,6 +526,8 @@ public class MainPresenter {
                     }
                     view.showError(errorMessage);
                     e.printStackTrace();
+                } finally {
+                    isApiCallRunning.set(false);
                 }
             }
         }.execute();

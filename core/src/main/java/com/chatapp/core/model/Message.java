@@ -1,6 +1,30 @@
 package com.chatapp.core.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class Message {
+
+    /*
+     {
+      "message_id": 15,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "nickname": "Barát",
+      "msg_type": "text", // vagy "audio", "image"
+      "content": "Szia!", // csak ha text típus
+      "media_info": {     // csak ha nem text típus
+        "media_type": "audio",
+        "file_path": "/uploads/audios/abc123.mp3",
+        "file_size": 123456
+      },
+      "sent_date": "2025-10-23 13:10:00",
+      "delivered": true,
+      "read_status": false,
+      "is_from_me": true // vagy false
+    }
+     */
+
+
     private boolean read;
     // ... többi mező
 
@@ -11,17 +35,30 @@ public class Message {
     public void setRead(boolean read) {
         this.read = read;
     }
+    @JsonAlias({ "message_id", "id" })
     private int id;
+
+    private int serverId;
+    @JsonAlias({"sender_id","senderId"})
     private int senderId;
+    @JsonAlias({    "nickname","senderNickname"})
     private String senderNickname;
+    @JsonAlias({"receiver_id","receiverId"})
     private int receiverId;
+    @JsonAlias({"msg_type","msgType"})
     private String msgType; // "text", "audio", "image"
+    @JsonAlias({"content"})
     private String content; // Text content or file path for media
+    @JsonAlias({"sent_date","sentDate"})
     private String sentDate;
+    @JsonAlias({"delivered"})
     private boolean delivered;
+    @JsonAlias({"read_status","readStatus"})
     private boolean readStatus;
+    @JsonAlias({"is_from_me","isFromMe"})
     private boolean isFromMe;
-    private int friendRequestId; // For friend requests, -1 if it's a message
+
+    private  MediaInfo media_info;
 
     public Message() {}
 
@@ -105,12 +142,22 @@ public class Message {
         isFromMe = fromMe;
     }
 
-    public int getFriendRequestId() {
-        return friendRequestId;
+
+
+    public MediaInfo getMedia_info() {
+        return media_info;
     }
 
-    public void setFriendRequestId(int friendRequestId) {
-        this.friendRequestId = friendRequestId;
+    public void setMedia_info(MediaInfo media_info) {
+        this.media_info = media_info;
+    }
+
+    public int getServerId() {
+        return serverId;
+    }
+
+    public void setServerId(int serverId) {
+        this.serverId = serverId;
     }
 
     @Override
@@ -118,6 +165,7 @@ public class Message {
         return "Message{" +
                 "read=" + read +
                 ", id=" + id +
+                ", serverId=" + serverId +
                 ", senderId=" + senderId +
                 ", senderNickname='" + senderNickname + '\'' +
                 ", receiverId=" + receiverId +
@@ -127,7 +175,7 @@ public class Message {
                 ", delivered=" + delivered +
                 ", readStatus=" + readStatus +
                 ", isFromMe=" + isFromMe +
-                ", friendRequestId=" + friendRequestId +
+                ", media_info=" + media_info +
                 '}';
     }
 }

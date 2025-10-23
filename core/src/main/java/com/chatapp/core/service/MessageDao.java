@@ -6,6 +6,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class MessageDao {
     private final DBService dbService;
 
@@ -13,10 +15,44 @@ public class MessageDao {
         this.dbService = dbService;
     }
 
+    public boolean tableExists(String tableName) {
+        try {
+            DatabaseMetaData metaData = dbService.getConnection().getMetaData();
+
+            try (ResultSet rs = metaData.getTables(null, null, tableName, new String[]{"TABLE"})) {
+                return rs.next(); // true, ha létezik a tábla
+            } catch (SQLException e) {
+                return false;
+            }
+        } catch (SQLException e) {
+            return false;
+        }
+
+
+    }
+
     public void saveMessage(Message message) {
-        String sql = "INSERT INTO messages (sender_id, receiver_id, nickname, msg_type, content, sent_date, delivered, read_status, is_from_me) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String tableName = "messages";
+        if (tableExists(tableName)) {
+
+            // ellenörizzük a serverId mezőt, szerepel -e már az adatbázisban
+            String checkSql = "SELECT COUNT(*) AS count FROM messages WHERE server_id = ?";
+            try (PreparedStatement checkStmt = dbService.getConnection().prepareStatement(checkSql)) {
+                checkStmt.setInt(1, message.getServerId());
+                ResultSet rs = checkStmt.executeQuery();
+                if (rs.next() && rs.getInt("count") > 0) {
+                    // Már létezik ilyen serverId, nem szúrjuk be újra
+                    return;
+                }
+            } catch (SQLException e) {
+
+            }
+        }
+
+        String sql = "INSERT INTO messages (sender_id, receiver_id, nickname, msg_type, content, sent_date, delivered, read_status, is_from_me, server_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = dbService.getConnection().prepareStatement(sql)) {
+
             stmt.setInt(1, message.getSenderId());
             stmt.setInt(2, message.getReceiverId());
             stmt.setString(3, message.getSenderNickname());
@@ -26,14 +62,18 @@ public class MessageDao {
             stmt.setInt(7, message.isDelivered() ? 1 : 0);
             stmt.setInt(8, message.isRead() ? 1 : 0);
             stmt.setInt(9, message.isFromMe() ? 1 : 0);
+            stmt.setInt(10, message.getServerId());
             stmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to save message", e);
         }
     }
 
-    public List<Message> getMessagesWithFriend(int friendId) {
-        String sql = "SELECT * FROM messages WHERE sender_id = ? OR receiver_id = ? ORDER BY sent_date ASC";
+    public List<Message> getMessagesWithFriend(Integer friendId) {
+        if (friendId == null) {
+            return new ArrayList<>();
+        }
+        String sql = "SELECT * FROM messages WHERE sender_id = ? OR receiver_id = ? ORDER BY server_id ASC";
         List<Message> messages = new ArrayList<>();
         try (PreparedStatement stmt = dbService.getConnection().prepareStatement(sql)) {
             stmt.setInt(1, friendId);
@@ -42,6 +82,7 @@ public class MessageDao {
             while (rs.next()) {
                 Message msg = new Message();
                 msg.setId(rs.getInt("id"));
+                msg.setServerId(rs.getInt("server_id"));
                 msg.setSenderId(rs.getInt("sender_id"));
                 msg.setReceiverId(rs.getInt("receiver_id"));
                 msg.setSenderNickname(rs.getString("nickname"));

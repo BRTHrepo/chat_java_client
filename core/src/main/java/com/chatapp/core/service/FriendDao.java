@@ -13,6 +13,32 @@ public class FriendDao {
         this.dbService = dbService;
     }
 
+    public  User getFriendByIdStatic( Integer friendId) {
+        if (friendId == null || friendId <= 0) {
+            return null;
+        }
+        String sql = "SELECT * FROM friends WHERE id = ?";
+        try (PreparedStatement stmt =dbService.getConnection().prepareStatement(sql)) {
+            stmt.setInt(1, friendId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    User user = new User();
+                    user.setId(rs.getInt("id"));
+                    user.setEmail(rs.getString("email"));
+                    user.setNickname(rs.getString("nickname"));
+                    user.setAvatarUrl(rs.getString("avatar_url"));
+                    user.setStatus(rs.getString("status"));
+                    return user;
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+
+        }
+        return  null;
+    }
+
     public void saveFriend(User user) {
         String sql = "INSERT OR REPLACE INTO friends (id, email, nickname, avatar_url, status) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = dbService.getConnection().prepareStatement(sql)) {

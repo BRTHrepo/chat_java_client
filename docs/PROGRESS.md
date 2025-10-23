@@ -1,6 +1,6 @@
 # Projekt Haladási Napló
 
-Ez a dokumentum a Java chat kliens fejlesztésének aktuális állapotát és a következő lépéseket rögzíti.
+Ez a dokumentum a Java kliensalkalmazás felépítését és a fejlesztési folyamat lépéseit rögzíti.
 
 ## Elkészült funkciók
 
@@ -71,16 +71,20 @@ A fő nézet alapvető funkciói, a barátkezelés és a kijelentkezés is műk�
 - A módosítások csak a helyi adatbázisban és memóriában frissülnek, mert a szerveroldali API jelenleg nem támogatja a profiladatok módosítását.
 - A főmenüben elérhető a "Profil..." menüpont, amely megnyitja a szerkesztő nézetet.
 
+### 2025.10.23. - Több klienspéldány támogatása egyedi beállításokkal
+
+A korábbi implementációban a `java.util.prefs.Preferences` osztály alapértelmezetten a felhasználó operációs rendszerén tárolta a beállításokat. A `ConfigurationPresenter` osztályban a `Preferences.userNodeForPackage(ConfigurationPresenter.class)` hívás minden futó példány számára ugyanazt a preferencia csomópontot hozta létre. Ez megakadályozta több klienspéldány egyidejű futtatását külön felhasználókkal, mivel mindegyik ugyanazokat a beállításokat (pl. szerver URL) használta.
+
+A probléma megoldására az alkalmazás módosításra került, hogy minden klienspéldány egyedi `Preferences` csomópontot használjon. Ez a következőképpen valósult meg:
+- A `ConfigurationPresenter` konstruktora most egyedi `instanceId` paramétert fogad el.
+- Ezt az `instanceId`-t használja a `Preferences.userNodeForPackage(ConfigurationPresenter.class).node(this.instanceId)` hívással egy példány-specifikus preferencia csomópont létrehozására.
+- A `Main` osztályban minden új klienspéldány indításakor egyedi `UUID` generálódik, amely az `instanceId`-ként kerül átadásra a `ConfigurationPresenter` konstruktorának.
+- A szerver URL lekérdezése most már az új `ConfigurationPresenter.getServerUrlForInstance(instanceId)` statikus metódussal történik, amely az adott `instanceId`-hez tartozó beállításokat használja.
+
+Ezek a módosítások lehetővé teszik több klienspéldány egyidejű futtatását, mindegyik saját, elkülönített beállításokkal.
+
 ## Következő lépések
 
-1.  **Barátkezelés funkciók:**
-    - Barátkérések megjelenítése és kezelése (elfogadás, elutasítása).
-    - Új barát hozzáadása.
-2.  **Profil nézet:**
-    - Felhasználói profil adatainak megjelenítése.
-    - Profil szerkesztésének lehetősége.
-3.  **Kijelentkezés:**
-    - A `handleLogout` metódus implementálása.
-    - A fő nézet bezárása és a bejelentkezési ablak újbóli megjelenítése.
-4.  **Valós idejű frissítés:**
-    - Periodikus üzenetlekérdezés (nincs WebSocket) implementálása az azonnali üzenetfrissítéshez.
+A korábbi "Következő lépések" szekcióban felsorolt feladatok (Barátkezelés funkciók, Profil nézet, Kijelentkezés) már implementálva lettek, és a fenti "Jelenlegi állapot" részben dokumentálva. A legutóbbi fejlesztés, a több klienspéldány egyedi beállításokkal történő támogatása is elkészült.
+
+Jelenleg nincsenek további tervezett lépések.
