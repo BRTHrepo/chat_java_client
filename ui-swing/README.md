@@ -17,6 +17,31 @@ A modul a **Model-View-Presenter (MVP)** tervezési mintát követi, ami segít 
 - `presenter/`: Itt helyezkednek el a nézetekhez tartozó `Presenter`-ek, mint a `LoginPresenter` és a `ConfigurationPresenter`, amelyek a nézetek logikáját vezérlik.
 - `util/ErrorMessageTranslator.java`: Egy segédosztály, amely a `core` modulból érkező `ApiException`-eket fordítja le felhasználóbarát, magyar nyelvű hibaüzenetekké.
 
+## Build és futtatás
+
+A modul önmagában nem futtatható, hanem a projekt gyökeréből kell buildelni a teljes alkalmazást:
+
+```bash
+mvn clean package
+```
+
+A build után a futtatható JAR a `ui-swing/target/` mappában jön létre:
+
+```bash
+java -jar ui-swing/target/ui-swing-1.0-SNAPSHOT-jar-with-dependencies.jar
+```
+
+A modul fejlesztése során a következőkre figyelj:
+- A Swing UI fejlesztéséhez Java 17 vagy újabb szükséges.
+- A `core` modulnak sikeresen buildelhetőnek kell lennie, mert a `ui-swing` erre épül.
+- A fejlesztéshez ajánlott IDE: IntelliJ IDEA, Eclipse vagy VS Code Java plugin.
+
+**Tesztek futtatása:**  
+```bash
+mvn test
+```
+> **Megjegyzés:** Jelenleg nincsenek automatikus (JUnit) tesztek ebben a modulban, de a Maven build és tesztfázis támogatott, így később bővíthető.
+
 ## Függőségek
 
 Ez a modul közvetlenül függ a `core` modultól, ahogy az a `pom.xml` fájlban is deklarálva van.
