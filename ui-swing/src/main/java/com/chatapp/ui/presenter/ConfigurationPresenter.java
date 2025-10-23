@@ -11,6 +11,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.prefs.Preferences;
+import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 
 public class ConfigurationPresenter {
     private static final String PREFS_SERVER_URL_KEY = "chatapp_server_url";
@@ -18,7 +20,8 @@ public class ConfigurationPresenter {
 
     // New static method to get server URL for a specific instance
     public static String getServerUrlForInstance(String instanceId) {
-        Preferences prefs = Preferences.userNodeForPackage(ConfigurationPresenter.class).node(instanceId);
+        String instanceKey = Base64.getEncoder().encodeToString(instanceId.getBytes(StandardCharsets.UTF_8));
+        Preferences prefs = Preferences.userNodeForPackage(ConfigurationPresenter.class).node(instanceKey);
         String savedUrl = prefs.get(PREFS_SERVER_URL_KEY, null);
         String urlWithSlash = (savedUrl != null ? savedUrl : DEFAULT_SERVER_URL);
         if (!urlWithSlash.endsWith("/")) {
@@ -37,8 +40,9 @@ private final AuthService authService;
         this.configurationView = configurationView;
         this.authService = authService;
         this.instanceId = instanceId; // Store the instance ID
-        // Create a unique preference node for this instance using the instanceId
-        this.prefs = Preferences.userNodeForPackage(ConfigurationPresenter.class).node(this.instanceId);
+        // Use the absolute path of the working directory as instance key (base64 encoded)
+        String instanceKey = Base64.getEncoder().encodeToString(instanceId.getBytes(StandardCharsets.UTF_8));
+        this.prefs = Preferences.userNodeForPackage(ConfigurationPresenter.class).node(instanceKey);
         attachListeners();
     }
 

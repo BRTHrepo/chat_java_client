@@ -73,17 +73,17 @@ A MainPresenter-ben minden API hívás külön AtomicBoolean flag-et használ, �
 - A módosítások csak a helyi adatbázisban és memóriában frissülnek, mert a szerveroldali API jelenleg nem támogatja a profiladatok módosítását.
 - A főmenüben elérhető a "Profil..." menüpont, amely megnyitja a szerkesztő nézetet.
 
-### 2025.10.23. - Több klienspéldány támogatása egyedi beállításokkal
+### 2025.10.23. - Több klienspéldány támogatása könyvtárfüggő beállításokkal
 
 A korábbi implementációban a `java.util.prefs.Preferences` osztály alapértelmezetten a felhasználó operációs rendszerén tárolta a beállításokat. A `ConfigurationPresenter` osztályban a `Preferences.userNodeForPackage(ConfigurationPresenter.class)` hívás minden futó példány számára ugyanazt a preferencia csomópontot hozta létre. Ez megakadályozta több klienspéldány egyidejű futtatását külön felhasználókkal, mivel mindegyik ugyanazokat a beállításokat (pl. szerver URL) használta.
 
-A probléma megoldására az alkalmazás módosításra került, hogy minden klienspéldány egyedi `Preferences` csomópontot használjon. Ez a következőképpen valósult meg:
-- A `ConfigurationPresenter` konstruktora most egyedi `instanceId` paramétert fogad el.
-- Ezt az `instanceId`-t használja a `Preferences.userNodeForPackage(ConfigurationPresenter.class).node(this.instanceId)` hívással egy példány-specifikus preferencia csomópont létrehozására.
-- A `Main` osztályban minden új klienspéldány indításakor egyedi `UUID` generálódik, amely az `instanceId`-ként kerül átadásra a `ConfigurationPresenter` konstruktorának.
-- A szerver URL lekérdezése most már az új `ConfigurationPresenter.getServerUrlForInstance(instanceId)` statikus metódussal történik, amely az adott `instanceId`-hez tartozó beállításokat használja.
+A probléma megoldására az alkalmazás módosításra került, hogy minden klienspéldány a futtatási könyvtár (`System.getProperty("user.dir")`) alapján kap egyedi `Preferences` csomópontot. Ez a következőképpen valósul meg:
+- A `ConfigurationPresenter` konstruktora most egyedi `instanceId` paramétert fogad el, amely a futtatási könyvtár abszolút elérési útja.
+- Ezt az `instanceId`-t base64 kódolva használja a `Preferences.userNodeForPackage(ConfigurationPresenter.class).node(...)` hívásban, így minden könyvtárból indított példány külön beállításokat kap.
+- A `Main` osztályban az instanceId a `System.getProperty("user.dir")`, így ugyanabból a könyvtárból indítva a beállítások megmaradnak, más könyvtárból külön példányként viselkedik az alkalmazás.
+- A szerver URL lekérdezése most már az új `ConfigurationPresenter.getServerUrlForInstance(instanceId)` statikus metódussal történik, amely az adott könyvtárhoz tartozó beállításokat használja.
 
-Ezek a módosítások lehetővé teszik több klienspéldány egyidejű futtatását, mindegyik saját, elkülönített beállításokkal.
+Ezek a módosítások lehetővé teszik több klienspéldány egyidejű futtatását, mindegyik saját, elkülönített beállításokkal, de ugyanabból a könyvtárból indítva a beállítások tartósak maradnak.
 
 A customPrefsNode változó eltávolítható, mert a preferences node kezeléséhez már nincs rá szükség.
 

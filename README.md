@@ -37,22 +37,18 @@ Ez a parancs letisztítja a korábbi buildeket, lefordítja a forráskódot, fut
 - A pooling során a token érvényességét folyamatosan figyeljük, és ha lejár vagy érvénytelen, automatikusan újra loginolunk (vagy visszairányítjuk a felhasználót a login képernyőre).
 - **Újdonság:** A JWT token érvényességét a kliens periodikusan ellenőrzi, és ha lejárt vagy hamarosan lejár, automatikusan frissíti (új login vagy refresh). Így a felhasználónak nem kell manuálisan újra bejelentkeznie.
 
-## Több Klienspéldány Támogatása Egyedi Beállításokkal
+## Több Klienspéldány Támogatása Könyvtárfüggő Beállításokkal
 
 A korábbi implementációban a `java.util.prefs.Preferences` osztály alapértelmezetten a felhasználó operációs rendszerén tárolta a beállításokat. A `ConfigurationPresenter` osztályban a `Preferences.userNodeForPackage(ConfigurationPresenter.class)` hívás minden futó példány számára ugyanazt a preferencia csomópontot hozta létre. Ez megakadályozta több klienspéldány egyidejű futtatását külön felhasználókkal, mivel mindegyik ugyanazokat a beállításokat (pl. szerver URL) használta.
 
-A probléma megoldására az alkalmazás módosításra került, hogy minden klienspéldány egyedi `Preferences` csomópontot használjon. Ez a következőképpen valósult meg:
-- A `ConfigurationPresenter` konstruktora most egyedi `instanceId` paramétert fogad el.
-- Ezt az `instanceId`-t használja a `Preferences.userNodeForPackage(ConfigurationPresenter.class).node(this.instanceId)` hívással egy példány-specifikus preferencia csomópont létrehozására.
-- A `Main` osztályban minden új klienspéldány indításakor egyedi `UUID` generálódik, amely az `instanceId`-ként kerül átadásra a `ConfigurationPresenter` konstruktorának.
-- Az `AuthService` példányosításakor is egyedi node nevet adunk át:  
-  ```java
-  String uniqueNode = java.util.UUID.randomUUID().toString();
-  AuthService authService = new AuthService(null, uniqueNode);
-  ```
-- A szerver URL lekérdezése most már az új `ConfigurationPresenter.getServerUrlForInstance(instanceId)` statikus metódussal történik, amely az adott `instanceId`-hez tartozó beállításokat használja.
+A probléma megoldására az alkalmazás módosításra került, hogy minden klienspéldány a futtatási könyvtár (System.getProperty("user.dir")) alapján kap egyedi `Preferences` csomópontot. Ez a következőképpen valósul meg:
+- A `ConfigurationPresenter` konstruktora most egyedi `instanceId` paramétert fogad el, amely a futtatási könyvtár abszolút elérési útja.
+- Ezt az `instanceId`-t base64 kódolva használja a `Preferences.userNodeForPackage(ConfigurationPresenter.class).node(...)` hívásban, így minden könyvtárból indított példány külön beállításokat kap.
+- A `Main` osztályban az instanceId a `System.getProperty("user.dir")`, így ugyanabból a könyvtárból indítva a beállítások megmaradnak, más könyvtárból külön példányként viselkedik az alkalmazás.
+- Az `AuthService` példányosításakor is ezt az instanceId-t adjuk át.
+- A szerver URL lekérdezése most már az új `ConfigurationPresenter.getServerUrlForInstance(instanceId)` statikus metódussal történik, amely az adott könyvtárhoz tartozó beállításokat használja.
 
-Ezek a módosítások lehetővé teszik több klienspéldány egyidejű futtatását, mindegyik saját, elkülönített beállításokkal.
+Ezek a módosítások lehetővé teszik több klienspéldány egyidejű futtatását, mindegyik saját, elkülönített beállításokkal, de ugyanabból a könyvtárból indítva a beállítások tartósak maradnak.
 
 ## Indítás
 

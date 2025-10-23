@@ -92,3 +92,12 @@ Az ütemterv rugalmas, a fejlesztés során felmerülő problémák és visszaje
 - A Message osztály confirmed státusza alapján történik a színezés, így a felhasználó azonnal látja, mely üzenetek státusza bizonytalan.
 - A not_updated_ids logika pontosítása: csak a fogadó fél tudja confirmed=true-ra állítani az üzenetet, a küldő nem.
 - Technikai háttér: a chatArea JTextPane-re lett cserélve, StyledDocument-et használ, így támogatott a soronkénti színezés és formázás.
+
+---
+
+## 2025.10.23. - Példány-azonosítás és preferences logika
+
+- A kliens minden példánya a futtatási könyvtár (`System.getProperty("user.dir")`) alapján kap egyedi preferences node-ot.
+- Az instanceId az abszolút elérési út, amely base64 kódolva kerül a Preferences node nevébe.
+- Így ugyanabból a könyvtárból indítva a beállítások megmaradnak, más könyvtárból külön példányként viselkedik az alkalmazás.
+- Az UUID alapú példány-azonosítás megszűnt, helyette könyvtárfüggő azonosítás van.

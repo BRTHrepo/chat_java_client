@@ -23,20 +23,17 @@ public class Main {
                 ex.printStackTrace();
             }
 
-            // Initialize core services
-            String uniqueNode = java.util.UUID.randomUUID().toString();
-            AuthService authService = new AuthService(null, uniqueNode); // ApiService will be set after server URL is configured
+            // Use the working directory as instance key for preferences
+            String instanceId = System.getProperty("user.dir");
+            AuthService authService = new AuthService(null, instanceId); // ApiService will be set after server URL is configured
             authService.loadSession(); // Load any saved session
 
-            // Generate a unique instance ID for this client
-            String instanceId = UUID.randomUUID().toString();
-
-            // Get the server URL using the instance ID
+            // Get the server URL using the instance ID (now the working directory)
             String serverUrl = ConfigurationPresenter.getServerUrlForInstance(instanceId);
 
             // Start with the configuration view if no URL is saved
             ConfigurationView configurationView = new ConfigurationView(serverUrl);
-            // Pass a unique instance ID to the ConfigurationPresenter
+            // Pass the working directory as the instance ID to the ConfigurationPresenter
             new ConfigurationPresenter(configurationView, authService, instanceId);
             configurationView.setVisible(true);
         });
