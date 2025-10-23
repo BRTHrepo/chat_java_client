@@ -227,7 +227,7 @@ public class ApiService {
             if (jsonElement.isJsonObject()) {
                 JsonObject jsonObject = jsonElement.getAsJsonObject();
                 JsonElement friendsElement = jsonObject.get("friends");
-                System.out.println("Friends JSON Element: " + friendsElement.toString());
+              //  System.out.println("Friends JSON Element: " + friendsElement.toString());
                 Type type = new TypeToken<List<User>>() {}.getType();
                 return gson.fromJson(friendsElement, type);
             }
@@ -259,7 +259,7 @@ public class ApiService {
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                System.out.println("getFriendRequests Unsuccessful response code: " + response.toString());
+               // System.out.println("getFriendRequests Unsuccessful response code: " + response.toString());
                 handleUnsuccessfulResponse(response);
             }
 
@@ -305,8 +305,8 @@ public class ApiService {
         }
 
         RequestBody body = builder.build();
-        System.out.println("data to send: receiver_id=" + receiverId + ", msg_type=" + msgType + ", content=" + content + ", mediaFile=" + (mediaFile != null ? mediaFile.getName() : "null"));
-        System.out.println("Body content type: " + builder.toString());
+      //  System.out.println("data to send: receiver_id=" + receiverId + ", msg_type=" + msgType + ", content=" + content + ", mediaFile=" + (mediaFile != null ? mediaFile.getName() : "null"));
+      //  System.out.println("Body content type: " + builder.toString());
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("Authorization", "Bearer " + token)
@@ -333,7 +333,7 @@ public class ApiService {
                 .build();
         // Special handling for nested JSON
         try (Response response = client.newCall(request).execute()) {
-            System.out.println("Response received for getMessages: " + response.toString());
+          //  System.out.println("Response received for getMessages: " + response.toString());
             if (!response.isSuccessful()) {
                 handleUnsuccessfulResponse(response);
             }
@@ -344,23 +344,23 @@ public class ApiService {
             }
             JsonElement jsonElement = gson.fromJson(responseBody, JsonElement.class); // Changed from JsonObject
 
-            System.out.println("Response body for getMessages: " + responseBody);
-            System.out.println("Parsed JSON Element for getMessages: " + jsonElement.toString());
+          //  System.out.println("Response body for getMessages: " + responseBody);
+           // System.out.println("Parsed JSON Element for getMessages: " + jsonElement.toString());
             if (jsonElement.isJsonObject()) {
                 JsonObject jsonObject = jsonElement.getAsJsonObject();
                 JsonElement messagesElement = jsonObject.get("messages");
                 JsonElement notUpdatedIdsElement = jsonObject.get("not_updated_ids");
                 List<Integer> notUpdatedIds = new ArrayList<>();
                 if (notUpdatedIdsElement != null) {
-                    System.out.println("Not Updated IDs Element: " + notUpdatedIdsElement.toString());
+                  // System.out.println("Not Updated IDs Element: " + notUpdatedIdsElement.toString());
                     Type messageType = new TypeToken<List<Integer>>() {}.getType();
                     notUpdatedIds = gson.fromJson(notUpdatedIdsElement, messageType);
                 }
-                System.out.println("Messages JSON Element: " + (messagesElement != null ? messagesElement.toString() : "null"));
+             //   System.out.println("Messages JSON Element: " + (messagesElement != null ? messagesElement.toString() : "null"));
                 if (messagesElement != null && messagesElement.isJsonArray()) { // Check if messagesElement exists and is an array
                     Type messageType = new TypeToken<List<GetMessageResponse>>() {}.getType();
                     List<GetMessageResponse> l = gson.fromJson(messagesElement, messageType);
-                    System.out.println("Deserialized GetMessageResponse list: " + l.toString());
+                   // System.out.println("Deserialized GetMessageResponse list: " + l.toString());
                     // Convert GetMessageResponse to Message
                     List<Message> messages = new java.util.ArrayList<>();
                     for (GetMessageResponse gmr : l) {

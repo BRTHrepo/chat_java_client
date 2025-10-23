@@ -276,7 +276,7 @@ public class MainPresenter {
                 try {
                     List<User> friends = get();
                     for (User f : friends) {
-                        System.out.println("Loaded friend: " + f.toString());
+                       // System.out.println("Loaded friend: " + f.toString());
                         if (view.getCurrentSelectedFriend() != null && f.getId() == view.getCurrentSelectedFriend().getId()) {
                             view.setCurrentSelectedFriend(f);
                         }
@@ -348,7 +348,7 @@ public class MainPresenter {
                 Object[] ret = apiService.getMessages(token, unconfirmedIds, null, "");
                 List<Message> messagesFromServer = (List<Message>) ret[0];
                 notUpdatedIdsRef.set((List<Integer>) ret[1]);
-                System.out.println("Messages from server for friendId " + ": " + messagesFromServer);
+             //   System.out.println("Messages from server for friendId " + ": " + messagesFromServer);
                 for (Message msg : messagesFromServer) {
                     messageDao.saveMessage(msg);
                 }
@@ -359,7 +359,7 @@ public class MainPresenter {
             protected void done() {
                 try {
                     List<Message> messages = get();
-                    System.out.println("Messages to display in MainPresenter: " + messages);
+                //    System.out.println("Messages to display in MainPresenter: " + messages);
 
                     // Sikeres getMessages után az elküldött ID-kat confirmed=true-ra állítjuk
 
@@ -416,7 +416,7 @@ public class MainPresenter {
                 eventLogDao.logEvent("send_message", LocalDateTime.now().toString(), "Üzenet elküldve " + selectedFriend.getNickname() + " részére.");
 
                 String token = authService.getCurrentToken();
-                System.out.println("msg to send: " + msg.toString());
+              //  System.out.println("msg to send: " + msg.toString());
                 return apiService.sendMessage(token, msg); // Store the response
             }
 
@@ -425,7 +425,7 @@ public class MainPresenter {
                 try {
                     com.chatapp.core.model.SendMessageResponse response = get(); // Get the response
                     if (response != null) {
-                        System.out.println("Message sent successfully: " + response.toString());
+                     //   System.out.println("Message sent successfully: " + response.toString());
                         view.clearMessageText();
                         loadMessages(selectedFriend.getId()); // Refresh messages
                     } else {

@@ -9,11 +9,14 @@ import javax.swing.event.ListSelectionListener;
 import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.swing.text.StyledDocument;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
 
 public class MainView extends JFrame {
 
     private JList<User> friendsList;
-    private JTextArea chatArea;
+private JTextPane chatArea;
     private JTextField messageField;
     private JButton sendButton;
     private JMenuBar menuBar;
@@ -121,12 +124,12 @@ public class MainView extends JFrame {
         // Center Panel - Chat
         JPanel centerPanel = new JPanel(new BorderLayout());
         centerPanel.setBorder(BorderFactory.createTitledBorder("Chat"));
-        chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        // Increase default font size for chatArea
-        Font currentChatFont = chatArea.getFont();
-        chatArea.setFont(currentChatFont.deriveFont(currentChatFont.getSize() + 2.0f)); // Increase by 2 points
-        centerPanel.add(new JScrollPane(chatArea), BorderLayout.CENTER);
+chatArea = new JTextPane();
+chatArea.setEditable(false);
+// Increase default font size for chatArea
+Font currentChatFont = chatArea.getFont();
+chatArea.setFont(currentChatFont.deriveFont(currentChatFont.getSize() + 2.0f)); // Increase by 2 points
+centerPanel.add(new JScrollPane(chatArea), BorderLayout.CENTER);
 
         JPanel messageInputPanel = new JPanel(new BorderLayout());
         messageField = new JTextField();
@@ -199,15 +202,28 @@ public class MainView extends JFrame {
 
     }
 
-    public void setChatMessages(List<Message> messages) {
-        chatArea.setText("");
-        if (messages == null) return;
-        for (Message message : messages) {
-            // Debug print for message content
-            System.out.println("Message - Sender: " + message.getSenderNickname() + ", Content: " + message.getContent());
-            chatArea.append(String.format("%s: %s\n", message.getSenderNickname(), message.getContent()));
+public void setChatMessages(List<Message> messages) {
+    chatArea.setText("");
+    if (messages == null) return;
+    StyledDocument doc = chatArea.getStyledDocument();
+    Font font = chatArea.getFont();
+    for (Message message : messages) {
+        SimpleAttributeSet attr = new SimpleAttributeSet();
+        StyleConstants.setFontFamily(attr, font.getFamily());
+        StyleConstants.setFontSize(attr, font.getSize());
+        if (!message.isConfirmed()) {
+            StyleConstants.setForeground(attr, Color.RED);
+        } else {
+            StyleConstants.setForeground(attr, Color.BLACK);
+        }
+        String line = String.format("%s: %s\n", message.getSenderNickname(), message.getContent());
+        try {
+            doc.insertString(doc.getLength(), line, attr);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
+}
 
     public void showError(String message) {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
@@ -297,9 +313,9 @@ public class MainView extends JFrame {
         return decreaseFontSizeMenuItem;
     }
 
-    public JTextArea getChatArea() {
-        return chatArea;
-    }
+public JTextPane getChatArea() {
+    return chatArea;
+}
 
     public JTextField getMessageField() {
         return messageField;
