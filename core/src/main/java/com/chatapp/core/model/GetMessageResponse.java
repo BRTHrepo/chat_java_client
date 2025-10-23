@@ -1,5 +1,7 @@
 package com.chatapp.core.model;
 
+import java.util.List;
+
 public class GetMessageResponse {
     private int message_id;
     private int sender_id;

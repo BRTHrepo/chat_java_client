@@ -45,7 +45,8 @@ public class DBService {
                 "delivered INTEGER," +
                 "read_status INTEGER," +
                 "is_from_me INTEGER," +
-                "server_id  INTEGER UNIQUE" +
+                "server_id  INTEGER UNIQUE," +
+                "confirmed INTEGER DEFAULT 0" +
                 ")"
             );
             // Barátok tábla

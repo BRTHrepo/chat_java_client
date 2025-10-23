@@ -12,6 +12,7 @@ import okhttp3.*;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -314,7 +315,8 @@ public class ApiService {
         return executeRequest(request, new TypeToken<SendMessageResponse>() {}.getType());
     }
 
-    public List<Message> getMessages(String token, List<Integer> confirmedMessageIds, Integer lastMessageId, String lastRequestDate) {
+    public Object[] getMessages(String token, List<Integer> confirmedMessageIds, Integer lastMessageId, String lastRequestDate) {
+        Object[] ret = new Object[2];
         String url = getFullUrl("/index.php/api/getMessages");
         JsonObject json = new JsonObject();
         if (confirmedMessageIds != null && !confirmedMessageIds.isEmpty()) {
@@ -336,7 +338,7 @@ public class ApiService {
                 handleUnsuccessfulResponse(response);
             }
             String responseBody = Objects.requireNonNull(response.body()).string();
-            if (responseBody == null || responseBody.trim().isEmpty()) {
+            if (responseBody.trim().isEmpty()) {
                 System.out.println("Empty response body for getMessages.");
                 throw new ApiException(500, "API response was empty or invalid JSON");
             }
@@ -347,6 +349,13 @@ public class ApiService {
             if (jsonElement.isJsonObject()) {
                 JsonObject jsonObject = jsonElement.getAsJsonObject();
                 JsonElement messagesElement = jsonObject.get("messages");
+                JsonElement notUpdatedIdsElement = jsonObject.get("not_updated_ids");
+                List<Integer> notUpdatedIds = new ArrayList<>();
+                if (notUpdatedIdsElement != null) {
+                    System.out.println("Not Updated IDs Element: " + notUpdatedIdsElement.toString());
+                    Type messageType = new TypeToken<List<Integer>>() {}.getType();
+                    notUpdatedIds = gson.fromJson(notUpdatedIdsElement, messageType);
+                }
                 System.out.println("Messages JSON Element: " + (messagesElement != null ? messagesElement.toString() : "null"));
                 if (messagesElement != null && messagesElement.isJsonArray()) { // Check if messagesElement exists and is an array
                     Type messageType = new TypeToken<List<GetMessageResponse>>() {}.getType();
@@ -370,7 +379,10 @@ public class ApiService {
                         msg.setFromMe(gmr.isIs_from_me());
                         messages.add(msg);
                     }
-                    return messages;
+
+                    ret[0] = messages;
+                    ret[1] = notUpdatedIds;
+                    return ret;
                 } else {
                     // If 'messages' key is missing or not an array, try to parse the whole object as ApiError
                     ApiError apiError = null;
@@ -386,7 +398,9 @@ public class ApiService {
             } else if (jsonElement.isJsonPrimitive()) {
                 // Handle the case where the response is a primitive.
                 System.err.println("API returned a JSON primitive instead of an object for getMessages: " + jsonElement.getAsString());
-                return new java.util.ArrayList<>(); // Return empty list
+                ret[0] = new java.util.ArrayList<>(); // Return empty list;
+                ret[1] = new java.util.ArrayList<>(); // Return empty list
+                return  ret;
             } else {
                 // Handle other unexpected JSON types if necessary
                 throw new ApiException(500, "Unexpected JSON type received for messages: " + jsonElement.getClass().getSimpleName());

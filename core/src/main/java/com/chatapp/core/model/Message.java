@@ -26,6 +26,7 @@ public class Message {
 
 
     private boolean read;
+    private boolean confirmed = false; // Új property: visszaigazoltuk-e a szerver felé
     // ... többi mező
 
     public boolean isRead() {
@@ -34,6 +35,14 @@ public class Message {
 
     public void setRead(boolean read) {
         this.read = read;
+    }
+
+    public boolean isConfirmed() {
+        return confirmed;
+    }
+
+    public void setConfirmed(boolean confirmed) {
+        this.confirmed = confirmed;
     }
     @JsonAlias({ "message_id", "id" })
     private int id;
@@ -164,6 +173,7 @@ public class Message {
     public String toString() {
         return "Message{" +
                 "read=" + read +
+                ", confirmed=" + confirmed +
                 ", id=" + id +
                 ", serverId=" + serverId +
                 ", senderId=" + senderId +

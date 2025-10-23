@@ -201,6 +201,7 @@ public class MainView extends JFrame {
 
     public void setChatMessages(List<Message> messages) {
         chatArea.setText("");
+        if (messages == null) return;
         for (Message message : messages) {
             // Debug print for message content
             System.out.println("Message - Sender: " + message.getSenderNickname() + ", Content: " + message.getContent());

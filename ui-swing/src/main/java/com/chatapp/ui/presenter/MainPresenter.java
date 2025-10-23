@@ -138,10 +138,10 @@ public class MainPresenter {
         SwingUtilities.invokeLater(() -> {
             com.chatapp.ui.view.ProfileView profileView = new com.chatapp.ui.view.ProfileView();
             new com.chatapp.ui.presenter.ProfilePresenter(
-                profileView,
-                authService,
-                apiService,
-                friendDao
+                    profileView,
+                    authService,
+                    apiService,
+                    friendDao
             );
             profileView.setVisible(true);
         });
@@ -150,18 +150,19 @@ public class MainPresenter {
     public void setCurrentSelectedFriend() {
         view.setSelectedFriendInList(view.getCurrentSelectedFriend());
     }
+
     private void attachListeners() {
         view.addFriendSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
 
                 if (view.getSelectedFriend() != null) {
-                    view.setCurrentSelectedFriend(   view.getSelectedFriend());
+                    view.setCurrentSelectedFriend(view.getSelectedFriend());
                     User selectedFriend = view.getCurrentSelectedFriend(); // Use the new getter
                     if (selectedFriend != null) {
                         loadMessages(selectedFriend.getId());
                     } else {
                         // If no friend is selected, clear the chat area
-                       // view.setChatMessages(java.util.Collections.emptyList());
+                        // view.setChatMessages(java.util.Collections.emptyList());
                     }
                 }
 
@@ -277,7 +278,7 @@ public class MainPresenter {
                     for (User f : friends) {
                         System.out.println("Loaded friend: " + f.toString());
                         if (view.getCurrentSelectedFriend() != null && f.getId() == view.getCurrentSelectedFriend().getId()) {
-                           view.setCurrentSelectedFriend(f);
+                            view.setCurrentSelectedFriend(f);
                         }
                     }
                     view.setFriendsList(friends);
@@ -334,12 +335,20 @@ public class MainPresenter {
 
     public void loadMessages(Integer friendId) {
         if (isMessagesLoading.getAndSet(true)) return;
+        AtomicReference<List<Integer>> notUpdatedIdsRef = new AtomicReference<>(new java.util.ArrayList<>());
+
         new SwingWorker<List<Message>, Void>() {
+            List<Integer> unconfirmedIds = null;
+
             @Override
             protected List<Message> doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
-                List<Message> messagesFromServer = apiService.getMessages(token, null,  null,"");
-                System.out.println("Messages from server for friendId " +  ": " + messagesFromServer);
+                // Lekérjük az összes unconfirmed szerverID-t
+                unconfirmedIds = messageDao.getUnconfirmedServerIds();
+                Object[] ret = apiService.getMessages(token, unconfirmedIds, null, "");
+                List<Message> messagesFromServer = (List<Message>) ret[0];
+                notUpdatedIdsRef.set((List<Integer>) ret[1]);
+                System.out.println("Messages from server for friendId " + ": " + messagesFromServer);
                 for (Message msg : messagesFromServer) {
                     messageDao.saveMessage(msg);
                 }
@@ -349,10 +358,18 @@ public class MainPresenter {
             @Override
             protected void done() {
                 try {
-                    List<com.chatapp.core.model.Message> messages =  get();
+                    List<Message> messages = get();
                     System.out.println("Messages to display in MainPresenter: " + messages);
-                    view.setChatMessages(messages);
 
+                    // Sikeres getMessages után az elküldött ID-kat confirmed=true-ra állítjuk
+
+                    List<Integer> not_updated_ids = notUpdatedIdsRef.get();
+                    if (unconfirmedIds != null && !unconfirmedIds.isEmpty()) {
+                        unconfirmedIds.removeAll(not_updated_ids);
+                        messageDao.setMessagesConfirmed(unconfirmedIds);
+                    }
+                    messages = messageDao.getMessagesWithFriend(friendId);
+                    view.setChatMessages(messages);
                 } catch (InterruptedException | ExecutionException e) {
                     Throwable cause = e.getCause();
                     String errorMessage;
@@ -380,7 +397,7 @@ public class MainPresenter {
             return; // Don't send empty messages
         }
         if (isSendMessageRunning.getAndSet(true)) return;
-        AtomicReference< Message> msgA = new AtomicReference<>(new Message());
+        AtomicReference<Message> msgA = new AtomicReference<>(new Message());
         new SwingWorker<com.chatapp.core.model.SendMessageResponse, Void>() {
             @Override
             protected com.chatapp.core.model.SendMessageResponse doInBackground() throws Exception {
@@ -470,10 +487,10 @@ public class MainPresenter {
             @Override
             protected Void doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
-                if (Objects.equals( "decline",action)) {
+                if (Objects.equals("decline", action)) {
                     apiService.deleteFriend(token, user.getId(), action);
                 }
-                if (Objects.equals( "accept",action)) {
+                if (Objects.equals("accept", action)) {
                     apiService.addFriend(token, user.getId(), user.getNickname(), user.getEmail());
                 }
                 return null;
@@ -514,7 +531,7 @@ public class MainPresenter {
             @Override
             protected Void doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
-                apiService.addFriend(token,null, null,email);
+                apiService.addFriend(token, null, null, email);
                 return null;
             }
 
