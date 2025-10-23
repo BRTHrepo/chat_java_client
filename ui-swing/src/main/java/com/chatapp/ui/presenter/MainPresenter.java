@@ -28,8 +28,13 @@ import java.util.concurrent.atomic.AtomicReference;
 public class MainPresenter {
 
     private final MainView view;
-    // Globális API hívás flag
-    private final java.util.concurrent.atomic.AtomicBoolean isApiCallRunning = new java.util.concurrent.atomic.AtomicBoolean(false);
+    // Egyedi API hívás flag-ek
+    private final java.util.concurrent.atomic.AtomicBoolean isFriendsLoading = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private final java.util.concurrent.atomic.AtomicBoolean isFriendRequestsLoading = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private final java.util.concurrent.atomic.AtomicBoolean isMessagesLoading = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private final java.util.concurrent.atomic.AtomicBoolean isSendMessageRunning = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private final java.util.concurrent.atomic.AtomicBoolean isFriendRequestActionRunning = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private final java.util.concurrent.atomic.AtomicBoolean isAddFriendRunning = new java.util.concurrent.atomic.AtomicBoolean(false);
     private final AuthService authService;
     private final ApiService apiService;
 
@@ -142,6 +147,9 @@ public class MainPresenter {
         });
     }
 
+    public void setCurrentSelectedFriend() {
+        view.setSelectedFriendInList(view.getCurrentSelectedFriend());
+    }
     private void attachListeners() {
         view.addFriendSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -244,7 +252,7 @@ public class MainPresenter {
     }
 
     private void loadFriends() {
-        if (isApiCallRunning.getAndSet(true)) return;
+        if (isFriendsLoading.getAndSet(true)) return;
         new SwingWorker<List<User>, Void>() {
             @Override
             protected List<User> doInBackground() throws Exception {
@@ -268,8 +276,12 @@ public class MainPresenter {
                     List<User> friends = get();
                     for (User f : friends) {
                         System.out.println("Loaded friend: " + f.toString());
+                        if (view.getCurrentSelectedFriend() != null && f.getId() == view.getCurrentSelectedFriend().getId()) {
+                           view.setCurrentSelectedFriend(f);
+                        }
                     }
                     view.setFriendsList(friends);
+                    MainPresenter.this.setCurrentSelectedFriend();
                 } catch (InterruptedException | ExecutionException e) {
                     Throwable cause = e.getCause();
                     String errorMessage;
@@ -281,14 +293,14 @@ public class MainPresenter {
                     view.showError(errorMessage);
                     e.printStackTrace();
                 } finally {
-                    isApiCallRunning.set(false);
+                    isFriendsLoading.set(false);
                 }
             }
         }.execute();
     }
 
     private void loadFriendRequests() {
-        if (isApiCallRunning.getAndSet(true)) return;
+        if (isFriendRequestsLoading.getAndSet(true)) return;
         new SwingWorker<List<User>, Void>() {
             @Override
             protected List<User> doInBackground() throws Exception {
@@ -314,14 +326,14 @@ public class MainPresenter {
                     view.showError(errorMessage);
                     e.printStackTrace();
                 } finally {
-                    isApiCallRunning.set(false);
+                    isFriendRequestsLoading.set(false);
                 }
             }
         }.execute();
     }
 
     public void loadMessages(Integer friendId) {
-        if (isApiCallRunning.getAndSet(true)) return;
+        if (isMessagesLoading.getAndSet(true)) return;
         new SwingWorker<List<Message>, Void>() {
             @Override
             protected List<Message> doInBackground() throws Exception {
@@ -339,7 +351,6 @@ public class MainPresenter {
                 try {
                     List<com.chatapp.core.model.Message> messages =  get();
                     System.out.println("Messages to display in MainPresenter: " + messages);
-                   // view.setCurrentSelectedFriend(  MainPresenter.this.friendDao.getFriendByIdStatic( friendId));
                     view.setChatMessages(messages);
 
                 } catch (InterruptedException | ExecutionException e) {
@@ -353,7 +364,7 @@ public class MainPresenter {
                     view.showError(errorMessage);
                     e.printStackTrace();
                 } finally {
-                    isApiCallRunning.set(false);
+                    isMessagesLoading.set(false);
                 }
             }
         }.execute();
@@ -368,7 +379,7 @@ public class MainPresenter {
         if (content.trim().isEmpty()) {
             return; // Don't send empty messages
         }
-        if (isApiCallRunning.getAndSet(true)) return;
+        if (isSendMessageRunning.getAndSet(true)) return;
         AtomicReference< Message> msgA = new AtomicReference<>(new Message());
         new SwingWorker<com.chatapp.core.model.SendMessageResponse, Void>() {
             @Override
@@ -397,9 +408,6 @@ public class MainPresenter {
                 try {
                     com.chatapp.core.model.SendMessageResponse response = get(); // Get the response
                     if (response != null) {
-                     //   Message msg = msgA.get();
-                     //   msg.setServerId(response.getMessage_id()); // Set the server ID from the response
-                    //    messageDao.saveMessage(msg);
                         System.out.println("Message sent successfully: " + response.toString());
                         view.clearMessageText();
                         loadMessages(selectedFriend.getId()); // Refresh messages
@@ -417,7 +425,7 @@ public class MainPresenter {
                     view.showError(errorMessage);
                     e.printStackTrace();
                 } finally {
-                    isApiCallRunning.set(false);
+                    isSendMessageRunning.set(false);
                 }
             }
         }.execute();
@@ -457,7 +465,7 @@ public class MainPresenter {
     }
 
     private void handleFriendRequestAction(User user, String action) {
-        if (isApiCallRunning.getAndSet(true)) return;
+        if (isFriendRequestActionRunning.getAndSet(true)) return;
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
@@ -489,7 +497,7 @@ public class MainPresenter {
                     view.showError(errorMessage);
                     e.printStackTrace();
                 } finally {
-                    isApiCallRunning.set(false);
+                    isFriendRequestActionRunning.set(false);
                 }
             }
         }.execute();
@@ -501,7 +509,7 @@ public class MainPresenter {
             view.showError("Please enter a nickname to add.");
             return;
         }
-        if (isApiCallRunning.getAndSet(true)) return;
+        if (isAddFriendRunning.getAndSet(true)) return;
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
@@ -527,7 +535,7 @@ public class MainPresenter {
                     view.showError(errorMessage);
                     e.printStackTrace();
                 } finally {
-                    isApiCallRunning.set(false);
+                    isAddFriendRunning.set(false);
                 }
             }
         }.execute();

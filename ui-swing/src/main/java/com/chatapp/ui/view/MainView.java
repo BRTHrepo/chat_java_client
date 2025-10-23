@@ -8,6 +8,7 @@ import java.awt.*;
 import javax.swing.event.ListSelectionListener;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class MainView extends JFrame {
 
@@ -27,7 +28,7 @@ public class MainView extends JFrame {
     private JButton declineFriendRequestButton;
     private JTextField addFriendField;
     private JButton addFriendButton;
-    private User currentSelectedFriend; // Variable to store the currently selected friend
+    private AtomicReference<User> currentSelectedFriend = new AtomicReference<>(null); // Variable to store the currently selected friend
 
     public MainView() {
         setTitle("Chat Application");
@@ -184,6 +185,18 @@ public class MainView extends JFrame {
             model.addElement(friend);
         }
         friendsList.setModel(model);
+
+        friendsList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof User user) {
+                    label.setText(user.getNickname()); // vagy bármilyen formátum
+                }
+                return label;
+            }
+        });
+
     }
 
     public void setChatMessages(List<Message> messages) {
@@ -268,11 +281,11 @@ public class MainView extends JFrame {
      * @return The selected User object, or null if none is selected.
      */
     public User getCurrentSelectedFriend() {
-        return currentSelectedFriend;
+        return currentSelectedFriend.get();
     }
 
     public void setCurrentSelectedFriend(User selectedFriend) {
-        currentSelectedFriend = selectedFriend;
+        currentSelectedFriend.set(selectedFriend);
     }
 
     public JMenuItem getIncreaseFontSizeMenuItem() {
@@ -301,5 +314,9 @@ public class MainView extends JFrame {
 
     public JMenuBar getMainMenuBar() { // Renamed to avoid clash with Frame.getMenuBar()
         return menuBar;
+    }
+
+    public void setSelectedFriendInList(User user) {
+        friendsList.setSelectedValue(user, true);
     }
 }
