@@ -65,6 +65,10 @@ public class MainPresenter {
         addPollingListeners();
         addProfileMenuListener();
         addFontSizeMenuListeners(); // Add listeners for font size menu items
+        // Saját user ID kiírása
+        if (authService.getCurrentUser() != null) {
+            view.setUserIdLabelText("Saját ID: " + authService.getCurrentUser().getId());
+        }
         startPolling();
 
         // Polling szál leállítása ablak bezárásakor is
@@ -159,11 +163,16 @@ public class MainPresenter {
                     view.setCurrentSelectedFriend(view.getSelectedFriend());
                     User selectedFriend = view.getCurrentSelectedFriend(); // Use the new getter
                     if (selectedFriend != null) {
+                        // Barát név/id frissítése
+                        view.setFriendInfoLabelText("Barát: " + selectedFriend.getNickname() + " (ID: " + selectedFriend.getId() + ")");
                         loadMessages(selectedFriend.getId());
                     } else {
+                        view.setFriendInfoLabelText("Barát: ");
                         // If no friend is selected, clear the chat area
                         // view.setChatMessages(java.util.Collections.emptyList());
                     }
+                } else {
+                    view.setFriendInfoLabelText("Barát: ");
                 }
 
             }

@@ -31,6 +31,8 @@ private JTextPane chatArea;
     private JButton declineFriendRequestButton;
     private JTextField addFriendField;
     private JButton addFriendButton;
+    private JLabel userIdLabel;
+    private JLabel friendInfoLabel;
     private AtomicReference<User> currentSelectedFriend = new AtomicReference<>(null); // Variable to store the currently selected friend
 
     public MainView() {
@@ -106,17 +108,20 @@ private JTextPane chatArea;
         menuBar.add(viewMenu); // Add the new View menu to the menu bar
         setJMenuBar(menuBar);
 
-        // Left Panel - Friends List
+        // Left Panel - Friends List (keskenyebb)
         JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setPreferredSize(new Dimension(200, 0));
         leftPanel.setBorder(BorderFactory.createTitledBorder("Friends"));
         friendsList = new JList<>();
         leftPanel.add(new JScrollPane(friendsList), BorderLayout.CENTER);
 
-        JPanel addFriendPanel = new JPanel(new BorderLayout());
+        JPanel addFriendPanel = new JPanel(new GridLayout(3, 1, 2, 2));
+        JLabel addFriendLabel = new JLabel("Email vagy felhasználónév:");
         addFriendField = new JTextField();
         addFriendButton = new JButton("Add");
-        addFriendPanel.add(addFriendField, BorderLayout.CENTER);
-        addFriendPanel.add(addFriendButton, BorderLayout.EAST);
+        addFriendPanel.add(addFriendLabel);
+        addFriendPanel.add(addFriendField);
+        addFriendPanel.add(addFriendButton);
         leftPanel.add(addFriendPanel, BorderLayout.SOUTH);
 
         add(leftPanel, BorderLayout.WEST);
@@ -141,17 +146,27 @@ centerPanel.add(new JScrollPane(chatArea), BorderLayout.CENTER);
         messageInputPanel.add(messageField, BorderLayout.CENTER);
         messageInputPanel.add(sendButton, BorderLayout.EAST);
 
-        // Polling gomb a chat panel tetején
-        JPanel pollingPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        // Polling gomb + user infók a chat panel tetején
+        JPanel pollingPanel = new JPanel();
+        pollingPanel.setLayout(new BoxLayout(pollingPanel, BoxLayout.Y_AXIS));
+        JPanel pollingRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         manualPollingButton = new JButton("Frissítés (Polling)");
-        pollingPanel.add(manualPollingButton);
+        pollingRow.add(manualPollingButton);
+        pollingPanel.add(pollingRow);
+
+        userIdLabel = new JLabel("Saját ID: ");
+        friendInfoLabel = new JLabel("Barát: ");
+        pollingPanel.add(userIdLabel);
+        pollingPanel.add(friendInfoLabel);
+
         centerPanel.add(pollingPanel, BorderLayout.NORTH);
 
         centerPanel.add(messageInputPanel, BorderLayout.SOUTH);
         add(centerPanel, BorderLayout.CENTER);
 
-        // Right Panel - Friend Requests
+        // Right Panel - Friend Requests (keskenyebb)
         JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.setPreferredSize(new Dimension(140, 0));
         rightPanel.setBorder(BorderFactory.createTitledBorder("Friend Requests"));
         friendRequestsList = new JList<>();
         rightPanel.add(new JScrollPane(friendRequestsList), BorderLayout.CENTER);
@@ -263,6 +278,16 @@ public void setChatMessages(List<Message> messages) {
             model.addElement(request);
         }
         friendRequestsList.setModel(model);
+        friendRequestsList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof User user) {
+                    label.setText(user.getEmail()); // vagy bármilyen formátum
+                }
+                return label;
+            }
+        });
     }
 
     public void addAcceptFriendRequestListener(ActionListener listener) {
@@ -335,5 +360,13 @@ public JTextPane getChatArea() {
 
     public void setSelectedFriendInList(User user) {
         friendsList.setSelectedValue(user, true);
+    }
+
+    public void setUserIdLabelText(String text) {
+        userIdLabel.setText(text);
+    }
+
+    public void setFriendInfoLabelText(String text) {
+        friendInfoLabel.setText(text);
     }
 }

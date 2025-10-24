@@ -11,9 +11,7 @@ public class User {
 
     @JsonAlias({"from_user_id", "id", "user_id","friend_id"})
     private int id;
-
     private String email;
-
     private String nickname;
     private String avatarUrl;
     private String status;
