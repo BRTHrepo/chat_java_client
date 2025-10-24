@@ -12,15 +12,32 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class LoginPresenter {
-    private final LoginView loginView;
-    private final AuthService authService;
+    private   LoginView loginView;
+    private   AuthService authService;
+    private static final AtomicReference< LoginPresenter> instance = new AtomicReference<>();
 
-    public LoginPresenter(LoginView loginView, AuthService authService) {
-        this.loginView = loginView;
-        this.authService = authService;
-        attachListeners();
+    public static LoginPresenter getInstance() {
+        if (instance.get() == null) {
+            instance.set(new LoginPresenter());
+        }
+        return instance.get();
+    }
+
+    private  LoginPresenter (){
+    }
+
+    public static User getCuurentUser() {
+        return instance.get().authService.getCurrentUser();
+    }
+
+    public static void setLoginPresenter(LoginView loginView, AuthService authService) {
+        LoginPresenter presenter =  getInstance();
+        presenter.loginView = loginView;
+        presenter.authService = authService;
+        presenter.attachListeners();
 
         // Automatikus login próbálkozás Preferences-ből
         String savedEmail = authService.getSavedEmail();
@@ -33,7 +50,7 @@ public class LoginPresenter {
                 User user = authService.login(savedEmail, savedPassword, loginView.getNickname());
                 if (user != null) {
                     loginView.showSuccess("Automatikus bejelentkezés sikeres!");
-                    openMainView();
+                    presenter.openMainView();
                 } else {
                     authService.setCurrentToken(null);
                     loginView.showError("Automatikus bejelentkezés sikertelen. Kérlek jelentkezz be újra.");

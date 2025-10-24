@@ -16,6 +16,7 @@ public class User {
     private String avatarUrl;
     private String status;
     private String token; // JWT token field
+    private boolean hasUnreadMessages; // New field to indicate unread messages
 
     // Getters and setters
     public int getId() { return id; }
@@ -30,7 +31,8 @@ public class User {
     public void setStatus(String status) { this.status = status; }
     public String getToken() { return token; }
     public void setToken(String token) { this.token = token; }
-
+    public boolean hasUnreadMessages() { return hasUnreadMessages; } // Getter for hasUnreadMessages
+    public void setHasUnreadMessages(boolean hasUnreadMessages) { this.hasUnreadMessages = hasUnreadMessages; } // Setter for hasUnreadMessages
 
 
     @Override
@@ -41,6 +43,7 @@ public class User {
                 ", nickname='" + nickname + '\'' +
                 ", avatarUrl='" + avatarUrl + '\'' +
                 ", status='" + status + '\'' +
+                ", hasUnreadMessages=" + hasUnreadMessages + // Include in toString for debugging
                 '}';
     }
 }

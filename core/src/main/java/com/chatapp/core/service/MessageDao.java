@@ -1,6 +1,7 @@
 package com.chatapp.core.service;
 
 import com.chatapp.core.model.Message;
+import com.chatapp.core.model.User;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -70,15 +71,21 @@ public class MessageDao {
         }
     }
 
-    public List<Message> getMessagesWithFriend(Integer friendId) {
-        if (friendId == null) {
+    public List<Message> getMessagesWithFriend(Integer friendId,Integer currentUserId) {
+        if (friendId == null || friendId <= 0 || currentUserId == null || currentUserId < 1 || friendId.equals(currentUserId)) {
             return new ArrayList<>();
         }
-        String sql = "SELECT * FROM messages WHERE sender_id = ? OR receiver_id = ? ORDER BY server_id ASC";
+
+        String sql = "SELECT * FROM messages " +
+                "WHERE (sender_id = ? AND receiver_id = ?) " +
+                "   OR (sender_id = ? AND receiver_id = ?) " +
+                "ORDER BY server_id ASC ";
         List<Message> messages = new ArrayList<>();
         try (PreparedStatement stmt = dbService.getConnection().prepareStatement(sql)) {
             stmt.setInt(1, friendId);
-            stmt.setInt(2, friendId);
+            stmt.setInt(2, currentUserId);
+            stmt.setInt(3, currentUserId);
+            stmt.setInt(4, friendId);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 Message msg = new Message();
@@ -142,4 +149,20 @@ public class MessageDao {
             throw new RuntimeException("Failed to delete messages", e);
         }
     }
+
+    public boolean setMessageReadStatus(Integer messageId, boolean isRead) {
+        if (messageId == null || messageId <= 0) {
+            return false;
+        }
+        String sql = "UPDATE messages SET read_status = ? WHERE id = ?";
+        try (PreparedStatement stmt = dbService.getConnection().prepareStatement(sql)) {
+            stmt.setInt(1, isRead ? 1 : 0);
+            stmt.setInt(2, messageId);
+            int rowsUpdated = stmt.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
 }

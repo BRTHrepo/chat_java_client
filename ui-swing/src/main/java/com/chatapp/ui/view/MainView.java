@@ -2,6 +2,7 @@ package com.chatapp.ui.view;
 
 import com.chatapp.core.model.Message;
 import com.chatapp.core.model.User;
+import com.chatapp.ui.presenter.MainPresenter;
 
 import javax.swing.*;
 import java.awt.*;
@@ -34,7 +35,7 @@ private JTextPane chatArea;
     private JLabel userIdLabel;
     private JLabel friendInfoLabel;
     private AtomicReference<User> currentSelectedFriend = new AtomicReference<>(null); // Variable to store the currently selected friend
-
+    private AtomicReference<User> currentSelectedFriendRequest = new AtomicReference<>(null); // Variable to store the currently selected friend request
     public MainView() {
         setTitle("Chat Application");
         setSize(800, 600);
@@ -210,6 +211,11 @@ centerPanel.add(new JScrollPane(chatArea), BorderLayout.CENTER);
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 if (value instanceof User user) {
                     label.setText(user.getNickname()); // vagy bármilyen formátum
+                    if (user.hasUnreadMessages()) {
+                        label.setForeground(Color.RED); // Set text color to red for unread messages
+                    } else {
+                        label.setForeground(Color.BLACK); // Default color for read messages
+                    }
                 }
                 return label;
             }
@@ -226,10 +232,17 @@ public void setChatMessages(List<Message> messages) {
         SimpleAttributeSet attr = new SimpleAttributeSet();
         StyleConstants.setFontFamily(attr, font.getFamily());
         StyleConstants.setFontSize(attr, font.getSize());
+        StyleConstants.setForeground(attr, Color.BLACK);
         if (!message.isConfirmed()) {
             StyleConstants.setForeground(attr, Color.RED);
-        } else {
-            StyleConstants.setForeground(attr, Color.BLACK);
+        }
+        if (!message.isRead())
+        {
+            StyleConstants.setForeground(attr, Color.YELLOW);
+        }
+        if ( !message.isRead()) {
+            message.setRead(true); //   Mark message as read when displaying
+            boolean ok = MainPresenter.instance.get().updateMessageReadStatus(message.getId(), true);
         }
         String line = String.format("%s: %s\n", message.getSenderNickname(), message.getContent());
         try {
@@ -251,6 +264,9 @@ public void setChatMessages(List<Message> messages) {
     public void addFriendSelectionListener(ListSelectionListener listener) {
         friendsList.addListSelectionListener(listener);
     }
+    public void addFriendRequestsSelectionListener(ListSelectionListener o) {
+        friendRequestsList.addListSelectionListener( o);
+    }
 
     public void addSendMessageListener(ActionListener listener) {
         sendButton.addActionListener(listener);
@@ -268,9 +284,6 @@ public void setChatMessages(List<Message> messages) {
         return friendsList.getSelectedValue();
     }
 
-    public User getSelectedFriendRequest() {
-        return friendRequestsList.getSelectedValue();
-    }
 
     public void setFriendRequests(List<User> requests) {
         DefaultListModel<User> model = new DefaultListModel<>();
@@ -287,6 +300,15 @@ public void setChatMessages(List<Message> messages) {
                 }
                 return label;
             }
+        });
+        friendRequestsList.addListSelectionListener(e -> {
+                User selectedRequest = friendRequestsList.getSelectedValue();
+            System.out.println("Selected friend request: " + selectedRequest);
+                if (selectedRequest == null  &&      currentSelectedFriendRequest.get() != null){
+                     friendRequestsList.setSelectedValue(currentSelectedFriendRequest.get(),  true);
+                }
+                selectedRequest = friendRequestsList.getSelectedValue();
+                setCurrentSelectedFriendRequest(selectedRequest);
         });
     }
 
@@ -329,7 +351,9 @@ public void setChatMessages(List<Message> messages) {
     public void setCurrentSelectedFriend(User selectedFriend) {
         currentSelectedFriend.set(selectedFriend);
     }
-
+    public void setCurrentSelectedFriendRequest(User selectedFriendRequest){
+        currentSelectedFriendRequest.set(selectedFriendRequest);
+    }
     public JMenuItem getIncreaseFontSizeMenuItem() {
         return increaseFontSizeMenuItem;
     }
@@ -368,5 +392,9 @@ public JTextPane getChatArea() {
 
     public void setFriendInfoLabelText(String text) {
         friendInfoLabel.setText(text);
+    }
+
+    public User getCurrentSelectedFriendRequest() {
+        return currentSelectedFriendRequest.get();
     }
 }

@@ -5,7 +5,6 @@ import com.chatapp.core.model.User;
 import com.chatapp.core.service.ApiService;
 import com.chatapp.core.service.ApiException;
 import com.chatapp.core.service.AuthService;
-import com.chatapp.core.service.FriendDao;
 import com.chatapp.ui.view.LoginView;
 import com.chatapp.ui.view.MainView;
 import com.chatapp.ui.util.ErrorMessageTranslator;
@@ -50,7 +49,10 @@ public class MainPresenter {
     private final AtomicBoolean isPolling = new AtomicBoolean(false);
     private int pollingPeriodSeconds = 5; // alapértelmezett 5 mp
 
+    public static final AtomicReference<MainPresenter> instance = new AtomicReference<>();
+
     public MainPresenter(MainView view, AuthService authService, ApiService apiService) {
+        instance .set(this);
         this.view = view;
         this.authService = authService;
         this.apiService = apiService;
@@ -188,6 +190,7 @@ public class MainPresenter {
                     if (index >= 0) {
                         view.getFriendsList().setSelectedIndex(index);
                         User selectedFriend = view.getFriendsList().getModel().getElementAt(index);
+                        view.setCurrentSelectedFriendRequest(selectedFriend);
                         showFriendContextMenu(selectedFriend, e.getComponent(), e.getX(), e.getY());
                     }
                 }
@@ -218,6 +221,7 @@ public class MainPresenter {
         });
 
         // Friend request list click: show dialog
+        /*
         view.getFriendRequestsList().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 User selectedRequest = view.getSelectedFriendRequest();
@@ -242,7 +246,7 @@ public class MainPresenter {
                 }
             }
         });
-
+*/
         view.addAddFriendListener(e -> {
             handleAddFriend();
         });
@@ -338,7 +342,15 @@ public class MainPresenter {
                 try {
                     List<User> friends = get();
                     for (User f : friends) {
-                       // System.out.println("Loaded friend: " + f.toString());
+                        f.setHasUnreadMessages(false); // Default to false
+                        List<Message> friendMessages = messageDao.getMessagesWithFriend(f.getId(), authService.getCurrentUser().getId());
+                        for (Message msg : friendMessages) {
+                            if (!msg.isRead()) {
+                                f.setHasUnreadMessages(true);
+                                break; // Found an unread message, no need to check further for this friend
+                            }
+                        }
+                        // Update the selected friend if it's the one being processed
                         if (view.getCurrentSelectedFriend() != null && f.getId() == view.getCurrentSelectedFriend().getId()) {
                             view.setCurrentSelectedFriend(f);
                         }
@@ -394,8 +406,10 @@ public class MainPresenter {
             }
         }.execute();
     }
-
-    public void loadMessages(Integer friendId) {
+    public boolean setMessageReadStatus(Integer messageId, boolean isRead) {
+        return messageDao.setMessageReadStatus(messageId, isRead);
+    }
+    private void loadMessages(Integer friendId) {
         if (isMessagesLoading.getAndSet(true)) return;
         AtomicReference<List<Integer>> notUpdatedIdsRef = new AtomicReference<>(new java.util.ArrayList<>());
 
@@ -414,7 +428,7 @@ public class MainPresenter {
                 for (Message msg : messagesFromServer) {
                     messageDao.saveMessage(msg);
                 }
-                return messageDao.getMessagesWithFriend(friendId);
+                return messageDao.getMessagesWithFriend(friendId, authService.getCurrentUser().getId());
             }
 
             @Override
@@ -430,7 +444,7 @@ public class MainPresenter {
                         unconfirmedIds.removeAll(not_updated_ids);
                         messageDao.setMessagesConfirmed(unconfirmedIds);
                     }
-                    messages = messageDao.getMessagesWithFriend(friendId);
+                    messages = messageDao.getMessagesWithFriend(friendId, authService.getCurrentUser().getId());
                     view.setChatMessages(messages);
                 } catch (InterruptedException | ExecutionException e) {
                     Throwable cause = e.getCause();
@@ -520,13 +534,13 @@ public class MainPresenter {
         SwingUtilities.invokeLater(() -> {
             view.dispose();
             LoginView loginView = new LoginView();
-            new LoginPresenter(loginView, authService);
+            LoginPresenter.setLoginPresenter(loginView, authService);
             loginView.setVisible(true);
         });
     }
 
     private void handleAcceptFriendRequest() {
-        User selectedRequest = view.getSelectedFriendRequest();
+        User selectedRequest = view.getCurrentSelectedFriendRequest();
         if (selectedRequest == null) {
             view.showError("Please select a friend request to accept.");
             return;
@@ -535,7 +549,7 @@ public class MainPresenter {
     }
 
     private void handleDeclineFriendRequest() {
-        User selectedRequest = view.getSelectedFriendRequest();
+        User selectedRequest = view.getCurrentSelectedFriendRequest();
         if (selectedRequest == null) {
             view.showError("Please select a friend request to decline.");
             return;
@@ -568,11 +582,8 @@ public class MainPresenter {
                 } catch (InterruptedException | ExecutionException e) {
                     Throwable cause = e.getCause();
                     String errorMessage;
-                    if (cause instanceof ApiException) {
-                        errorMessage = ErrorMessageTranslator.translate((ApiException) cause);
-                    } else {
-                        errorMessage = "An unexpected error occurred: " + (cause != null ? cause.getMessage() : e.getMessage());
-                    }
+                    errorMessage = "An unexpected error occurred: " + (cause != null ? cause.getMessage() : e.getMessage());
+
                     view.showError(errorMessage);
                     e.printStackTrace();
                 } finally {
@@ -597,7 +608,7 @@ public class MainPresenter {
 
         deleteButton.addActionListener(e -> {
             dialog.dispose();
-            handleDeleteFriend(friend);
+            handleDeleteFriend(view.getCurrentSelectedFriendRequest());
         });
 
         dialog.setVisible(true);
@@ -683,5 +694,9 @@ public class MainPresenter {
                 }
             }
         }.execute();
+    }
+
+    public boolean updateMessageReadStatus(int id, boolean b) {
+       return   this.messageDao.setMessageReadStatus(id, b);
     }
 }

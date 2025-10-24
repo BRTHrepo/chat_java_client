@@ -163,7 +163,7 @@ public class ApiService {
 
         RequestBody body = RequestBody.create(json.toString(), MediaType.get("application/json; charset=utf-8"));
         Request request = new Request.Builder().url(url).post(body).build();
-        executeRequest(request, null);
+        executeRequest(request, new TypeToken<DeleteFriendResponse>() {}.getType());
     }
 
     public void addFriend(String token,Integer friendId, String nickname,String email) {
@@ -179,10 +179,11 @@ public class ApiService {
                 .addHeader("Authorization", "Bearer " + token)
                 .post(body)
                 .build();
-        executeRequest(request, null);
+        executeRequest(request, new TypeToken<DeleteFriendResponse>() {}.getType());
     }
 
-    public void deleteFriend(String token, int friendId, String action) {
+    public void deleteFriend(String token, Integer friendId, String action) {
+        System.out.println("deleteFriend called with friendId: " + friendId + ", action: " + action);
         String url = getFullUrl("/index.php/api/deleteFriend");
         JsonObject json = new JsonObject();
         json.addProperty("friend_id", friendId);
@@ -194,7 +195,7 @@ public class ApiService {
                 .addHeader("Authorization", "Bearer " + token)
                 .post(body)
                 .build();
-        executeRequest(request, null);
+        executeRequest(request,  new TypeToken<DeleteFriendResponse>() {}.getType());
     }
 
 
@@ -267,8 +268,18 @@ public class ApiService {
             if (jsonElement.isJsonObject()) {
                 JsonObject jsonObject = jsonElement.getAsJsonObject();
                 JsonElement requestsElement = jsonObject.get("requests");
-                Type type = new TypeToken<List<User>>() {}.getType();
-                return gson.fromJson(requestsElement, type);
+                System.out.println("Friend Requests JSON Element: " + requestsElement.toString());
+                Type type = new TypeToken<List<GetFriendRequestResponse>>() {}.getType();
+                List<GetFriendRequestResponse> dummy = gson.fromJson(requestsElement, type);
+                List<User> users = new java.util.ArrayList<>();
+                for (GetFriendRequestResponse req : dummy) {
+                    User user = new User();
+                    user.setId(req.getFrom_user_id());
+                    user.setNickname(req.getNickname());
+                    user.setEmail(req.getEmail());
+                    users.add(user);
+                }
+                return users;
             }
 
             // Ha a válasz nem JSON objektum, üres lista visszaadása

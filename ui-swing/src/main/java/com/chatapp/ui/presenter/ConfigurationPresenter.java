@@ -2,7 +2,6 @@ package com.chatapp.ui.presenter;
 
 import com.chatapp.core.service.ApiService;
 import com.chatapp.core.service.AuthService;
-import com.chatapp.ui.presenter.LoginPresenter;
 import com.chatapp.ui.view.ConfigurationView;
 import com.chatapp.ui.view.LoginView;
 
@@ -110,7 +109,7 @@ private void openLoginView() {
                 LoginView loginView = new LoginView();
                 // Assuming LoginPresenter can be instantiated without needing the instanceId directly,
                 // as it will use the ApiService which is already configured with the correct server URL.
-                new LoginPresenter(loginView, authService);
+                LoginPresenter.setLoginPresenter(loginView, authService);
                 loginView.setVisible(true);
             } catch (Exception ex) {
                 ex.printStackTrace();
