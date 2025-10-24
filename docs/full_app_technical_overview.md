@@ -8,7 +8,7 @@ Ez a dokumentum a chat alkalmazás teljes tartalmi, logikai és technikai műkö
 
 - **MVP (Model-View-Presenter) minta**: UI (View), logika (Presenter), adatkezelés (Model/Service/DAO) szétválasztva.
 - **Rétegek**:
-  - UI réteg: Swing (Java) / WinForms vagy WPF (C#)
+  - UI réteg: Swing (Java) /  WPF (C#)
   - Presenter réteg: eseménykezelés, workflow, logika
   - Service/DAO réteg: adatbázis, REST API, adatmodellek
   - Model réteg: entitások (User, Message, stb.)
@@ -234,16 +234,27 @@ Ez a dokumentum a chat alkalmazás teljes tartalmi, logikai és technikai műkö
 
 #### FriendRequest
 
-- **Attribútumok**:
-  - `int FromUserId`
-  - `int ToUserId`
-  - `string RequestDate`
-- **Példa (C#-ban):**
-```csharp
-public class FriendRequest {
-    public int FromUserId { get; set; }
-    public int ToUserId { get; set; }
-    public string RequestDate { get; set; }
+- **Implementációs részletek:**
+  - A FriendRequest adatbázisban minden barátkérés egy rekord a friend_requests táblában: id, from_user_id, to_user_id, request_date.
+  - A FriendRequestDao.getAllFriendRequests() minden barátkérést visszaad, nincs user_id szerinti szűrés (a szűrés a Presenter/Service rétegben történik).
+  - A FriendRequestRecord POJO tartalmazza az összes mezőt: id, fromUserId, toUserId, requestDate.
+  - Barátkérés mentése: saveFriendRequest(fromUserId, toUserId, requestDate).
+  - Barátkérések törlése: deleteAllFriendRequests().
+  - Barátkérés elfogadása/elutasítása nem a DAO-ban, hanem a Presenter/Service rétegben történik (API hívás után frissül az adatbázis).
+
+- **Attribútumok (Java POJO):**
+  - int id
+  - int fromUserId
+  - int toUserId
+  - String requestDate
+
+- **Példa (Java-ban):**
+```java
+public class FriendRequestRecord {
+    public int id;
+    public int fromUserId;
+    public int toUserId;
+    public String requestDate;
 }
 ```
 
@@ -320,11 +331,11 @@ CREATE TABLE friend_requests (
 );
 
 CREATE TABLE friends (
-  user_id INTEGER,
-  friend_id INTEGER,
-  PRIMARY KEY(user_id, friend_id),
-  FOREIGN KEY(user_id) REFERENCES users(id),
-  FOREIGN KEY(friend_id) REFERENCES users(id)
+  id INTEGER PRIMARY KEY,
+  email TEXT,
+  nickname TEXT,
+  avatar_url TEXT,
+  status TEXT
 );
 
 CREATE TABLE event_logs (
@@ -339,8 +350,7 @@ CREATE TABLE event_logs (
 
 - Egy user több üzenetet küldhet/fogadhat (messages.sender_id, messages.receiver_id)
 - Egy user több barátkérést küldhet/fogadhat (friend_requests.from_user_id, to_user_id)
-- Barátság: friends tábla (user_id, friend_id)
-- Egy üzenethez tartozhat média (messages.media_type, file_path, file_size)
+- Barátság: a friends tábla csak a bejelentkezett felhasználó barátlistáját tartalmazza (nincs user_id, csak barát rekordok)
 
 ### 4.4 JSON szerializáció (API kommunikációhoz)
 
@@ -368,16 +378,28 @@ CREATE TABLE event_logs (
 
 ### 5.1 ApiService
 
-REST API hívások minden fő funkcióhoz.  
+REST API hívások minden fő funkcióhoz, a válaszok típusbiztos deszerializálásával.  
 **Főbb metódusok (Java → C#):**
-- `RegisterLoginRaw(email, password, nickname)` – regisztráció/bejelentkezés
-- `ForgotPassword(email)` – jelszóemlékeztető
-- `AddFriend(token, friendId, nickname, email)` – barát hozzáadása
-- `DeleteFriend(token, friendId, action)` – barát törlése/barátkérés elutasítása
-- `GetFriends(token)` – barátok lekérdezése
-- `GetFriendRequests(token)` – barátkérések lekérdezése
-- `SendMessage(token, message)` – üzenetküldés
-- `GetMessages(token, confirmedMessageIds, lastMessageId, lastRequestDate)` – üzenetek lekérdezése
+- `registerLoginRaw(email, password, nickname)` – regisztráció/bejelentkezés (nyers JSON válasz)
+- `forgotPassword(email)` – jelszóemlékeztető (DeleteFriendResponse-t vár)
+- `addFriend(token, friendId, nickname, email)` – barát hozzáadása (DeleteFriendResponse-t vár)
+- `deleteFriend(token, friendId, action)` – barát törlése/barátkérés elutasítása (DeleteFriendResponse-t vár)
+- `getFriends(token)` – barátok lekérdezése (List<User>)
+- `getFriendRequests(token)` – barátkérések lekérdezése (List<GetFriendRequestResponse> → List<User>)
+- `sendMessage(token, message)` – üzenetküldés (SendMessageResponse-t vár)
+- `getMessages(token, confirmedMessageIds, lastMessageId, lastRequestDate)` – üzenetek lekérdezése (List<GetMessageResponse> → List<Message> + not_updated_ids)
+
+**Válaszmodellek:**
+- **DeleteFriendResponse**: minden barátművelet (addFriend, deleteFriend, forgotPassword) ezt a típust várja vissza, siker/hiba státusszal.
+- **GetFriendRequestResponse**: barátkérések lekérdezésekor a szerver ezt a típust adja vissza, amelyből User lista készül.
+- **SendMessageResponse**: üzenetküldés válasza.
+- **GetMessageResponse**: üzenetek lekérdezésekor a szerver ezt a típust adja vissza, amelyből Message lista készül.
+- **ApiError**: minden hiba esetén a szerver ezt a típust adja vissza, amit az executeRequest automatikusan felismer és ApiException-t dob.
+
+**Központi végrehajtás:**
+- Minden metódus a `private <T> T executeRequest(Request request, Type returnType)` metódust használja, amely a megadott returnType alapján deszerializálja a választ (pl. DeleteFriendResponse, GetFriendRequestResponse, stb.).
+- Ha a válasz nem felel meg a várt típusnak, vagy ApiError-t kap, automatikusan ApiException dobódik.
+- A getMessages és getFriendRequests metódusok speciális logikát tartalmaznak a válaszok feldolgozására (pl. GetFriendRequestResponse → User).
 
 **Példa (C#-ban):**
 ```csharp
@@ -387,17 +409,19 @@ public class ApiService {
         _client = new HttpClient { BaseAddress = new Uri(baseUrl) };
     }
 
-    public async Task<User> RegisterLoginRaw(string email, string password, string nickname) { /* ... */ }
-    public async Task ForgotPassword(string email) { /* ... */ }
-    public async Task AddFriend(string token, int friendId, string nickname, string email) { /* ... */ }
-    public async Task DeleteFriend(string token, int friendId, string action) { /* ... */ }
+    public async Task<string> RegisterLoginRaw(string email, string password, string nickname) { /* ... */ }
+    public async Task<DeleteFriendResponse> ForgotPassword(string email) { /* ... */ }
+    public async Task<DeleteFriendResponse> AddFriend(string token, int friendId, string nickname, string email) { /* ... */ }
+    public async Task<DeleteFriendResponse> DeleteFriend(string token, int friendId, string action) { /* ... */ }
     public async Task<List<User>> GetFriends(string token) { /* ... */ }
-    public async Task<List<FriendRequest>> GetFriendRequests(string token) { /* ... */ }
+    public async Task<List<GetFriendRequestResponse>> GetFriendRequests(string token) { /* ... */ }
     public async Task<SendMessageResponse> SendMessage(string token, Message message) { /* ... */ }
-    public async Task<List<Message>> GetMessages(string token, List<int> confirmedMessageIds, int? lastMessageId, string lastRequestDate) { /* ... */ }
+    public async Task<List<GetMessageResponse>> GetMessages(string token, List<int> confirmedMessageIds, int? lastMessageId, string lastRequestDate) { /* ... */ }
 }
 ```
-**Megjegyzés:** Minden metódus HTTP kérést indít, JSON-t küld/fogad, hibakezelés try-catch blokkal, ApiException dobásával.
+**Megjegyzés:**  
+- Minden metódus HTTP kérést indít, a válaszokat a returnType alapján deszerializálja.
+- Az executeRequest metódus minden hibát ApiError alapján ApiException-né alakít.
 
 ### 5.2 AuthService
 
@@ -464,43 +488,54 @@ public class DBService {
 
 #### MessageDao
 
-- `TableExists(tableName)`
-- `SaveMessage(message)`
-- `GetMessagesWithFriend(friendId)`
-- `GetUnconfirmedServerIds()`
-- `SetMessagesConfirmed(serverIds)`
-- `DeleteAllMessages()`
+- `tableExists(tableName)` – tábla létezésének ellenőrzése
+- `saveMessage(message)` – üzenet mentése, duplikáció ellenőrzéssel (server_id alapján)
+- `getMessagesWithFriend(friendId, currentUserId)` – csak azokat az üzeneteket adja vissza, ahol a két fél pontosan a bejelentkezett felhasználó és a barát (nem enged át mások üzeneteit)
+- `getUnconfirmedServerIds()` – nem megerősített üzenetek server_id-jai
+- `setMessagesConfirmed(serverIds)` – üzenetek confirmed státuszának beállítása
+- `deleteAllMessages()` – összes üzenet törlése
+- `setMessageReadStatus(messageId, isRead)` – olvasottság állítása
 
-**Példa (C#-ban):**
-```csharp
+**Megjegyzés:**  
+A getMessagesWithFriend() helyes paraméterezése: mindkét fél id-jét figyelembe veszi (currentUserId, friendId).  
+Az üzenetek beszúrása előtt ellenőrzi, hogy a server_id már szerepel-e az adatbázisban (duplikáció elkerülése).  
+Az olvasottság (read_status) explicit metódussal állítható.
+
+**Példa (Java-ban):**
+```java
 public class MessageDao {
-    private DBService _db;
-    public MessageDao(DBService db) { _db = db; }
-    public bool TableExists(string tableName) { /* ... */ }
-    public void SaveMessage(Message message) { /* ... */ }
-    public List<Message> GetMessagesWithFriend(int friendId) { /* ... */ }
-    public List<int> GetUnconfirmedServerIds() { /* ... */ }
-    public void SetMessagesConfirmed(List<int> serverIds) { /* ... */ }
-    public void DeleteAllMessages() { /* ... */ }
+    private final DBService dbService;
+    public MessageDao(DBService dbService) { this.dbService = dbService; }
+    public boolean tableExists(String tableName) { /* ... */ }
+    public void saveMessage(Message message) { /* ... */ }
+    public List<Message> getMessagesWithFriend(Integer friendId, Integer currentUserId) { /* ... */ }
+    public List<Integer> getUnconfirmedServerIds() { /* ... */ }
+    public void setMessagesConfirmed(List<Integer> serverIds) { /* ... */ }
+    public void deleteAllMessages() { /* ... */ }
+    public boolean setMessageReadStatus(Integer messageId, boolean isRead) { /* ... */ }
 }
 ```
 
 #### FriendDao
 
-- `GetFriendById(friendId)`
-- `SaveFriend(user)`
-- `GetAllFriends()`
-- `DeleteAllFriends()`
+- `getFriendByIdStatic(friendId)` – barát lekérdezése id alapján (user_id nincs, csak barát id)
+- `saveFriend(user)` – barát adatainak mentése (id, email, nickname, avatar_url, status)
+- `getAllFriends()` – összes barát lekérdezése (nincs user_id szerinti szűrés, csak a bejelentkezett felhasználó barátlistája van az adatbázisban)
+- `deleteAllFriends()` – összes barát törlése
 
-**Példa (C#-ban):**
-```csharp
+**Megjegyzés:**  
+A friends tábla nem kapcsolótábla (nincs user_id, friend_id), hanem minden barát egy külön rekord (id, email, nickname, avatar_url, status).  
+A getAllFriends() minden barátot visszaad, nincs user_id szerinti szűrés.
+
+**Példa (Java-ban):**
+```java
 public class FriendDao {
-    private DBService _db;
-    public FriendDao(DBService db) { _db = db; }
-    public User GetFriendById(int friendId) { /* ... */ }
-    public void SaveFriend(User user) { /* ... */ }
-    public List<User> GetAllFriends() { /* ... */ }
-    public void DeleteAllFriends() { /* ... */ }
+    private final DBService dbService;
+    public FriendDao(DBService dbService) { this.dbService = dbService; }
+    public User getFriendByIdStatic(Integer friendId) { /* ... */ }
+    public void saveFriend(User user) { /* ... */ }
+    public List<User> getAllFriends() { /* ... */ }
+    public void deleteAllFriends() { /* ... */ }
 }
 ```
 
@@ -997,10 +1032,11 @@ sendMessageButton.Click += (s, e) => presenter.HandleSendMessage(content, mediaF
 ```java
 // Java
 try {
-    apiService.sendMessage(token, message);
+        apiService.sendMessage(token, message);
 } catch (ApiException ex) {
-    view.showError(ErrorMessageTranslator.translate(ex));
-}
+        view.showError(ErrorMessageTranslator.translate(ex));
+        }
+
 ```
 ```csharp
 // C#
