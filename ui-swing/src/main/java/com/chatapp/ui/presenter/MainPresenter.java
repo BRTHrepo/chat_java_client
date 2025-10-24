@@ -14,6 +14,7 @@ import javax.swing.*;
 import java.awt.Component; // Explicitly import Component
 import java.awt.Container;
 import java.awt.Font; // Explicitly import Font
+import java.awt.GridLayout;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -178,6 +179,32 @@ public class MainPresenter {
             }
         });
 
+        // Jobb gombos menü barátra
+        view.getFriendsList().addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger() || SwingUtilities.isRightMouseButton(e)) {
+                    int index = view.getFriendsList().locationToIndex(e.getPoint());
+                    if (index >= 0) {
+                        view.getFriendsList().setSelectedIndex(index);
+                        User selectedFriend = view.getFriendsList().getModel().getElementAt(index);
+                        showFriendContextMenu(selectedFriend, e.getComponent(), e.getX(), e.getY());
+                    }
+                }
+            }
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger() || SwingUtilities.isRightMouseButton(e)) {
+                    int index = view.getFriendsList().locationToIndex(e.getPoint());
+                    if (index >= 0) {
+                        view.getFriendsList().setSelectedIndex(index);
+                        User selectedFriend = view.getFriendsList().getModel().getElementAt(index);
+                        showFriendContextMenu(selectedFriend, e.getComponent(), e.getX(), e.getY());
+                    }
+                }
+            }
+        });
+
         view.addSendMessageListener(e -> {
             handleSendMessage(view.getMessageText());
         });
@@ -188,6 +215,32 @@ public class MainPresenter {
 
         view.addDeclineFriendRequestListener(e -> {
             handleDeclineFriendRequest();
+        });
+
+        // Friend request list click: show dialog
+        view.getFriendRequestsList().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                User selectedRequest = view.getSelectedFriendRequest();
+                if (selectedRequest != null) {
+                    int result = JOptionPane.showOptionDialog(
+                        view,
+                        "Elfogadod ezt a barátkérést?\n" + selectedRequest.getEmail(),
+                        "Barátkérés",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        new Object[]{"Elfogad", "Elutasít"},
+                        "Elfogad"
+                    );
+                    if (result == JOptionPane.YES_OPTION) {
+                        handleAcceptFriendRequest();
+                    } else if (result == JOptionPane.NO_OPTION) {
+                        handleDeclineFriendRequest();
+                    }
+                    // Visszaállítás, hogy ne maradjon kijelölve
+                    view.getFriendRequestsList().clearSelection();
+                }
+            }
         });
 
         view.addAddFriendListener(e -> {
@@ -529,18 +582,74 @@ public class MainPresenter {
         }.execute();
     }
 
+    private void showFriendContextMenu(User friend, Component parent, int x, int y) {
+        JPanel panel = new JPanel(new GridLayout(0, 1, 4, 4));
+        panel.add(new JLabel("Név: " + friend.getNickname()));
+        panel.add(new JLabel("Email: " + friend.getEmail()));
+        panel.add(new JLabel("ID: " + friend.getId()));
+        JButton deleteButton = new JButton("Barát törlése");
+        panel.add(deleteButton);
+
+        JDialog dialog = new JDialog((JFrame) SwingUtilities.getWindowAncestor(view), "Barát adatai", true);
+        dialog.getContentPane().add(panel);
+        dialog.pack();
+        dialog.setLocationRelativeTo(view);
+
+        deleteButton.addActionListener(e -> {
+            dialog.dispose();
+            handleDeleteFriend(friend);
+        });
+
+        dialog.setVisible(true);
+    }
+
+    private void handleDeleteFriend(User friend) {
+        int confirm = JOptionPane.showConfirmDialog(
+            view,
+            "Biztosan törölni szeretnéd ezt a barátot?\n" + friend.getNickname() + " (" + friend.getEmail() + ")",
+            "Barát törlése",
+            JOptionPane.YES_NO_OPTION
+        );
+        if (confirm == JOptionPane.YES_OPTION) {
+            new SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    String token = authService.getCurrentToken();
+                    apiService.deleteFriend(token, friend.getId(), "delete");
+                    return null;
+                }
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        view.showSuccess("Barát törölve.");
+                        loadFriends();
+                    } catch (Exception ex) {
+                        view.showError("Hiba a barát törlésekor: " + ex.getMessage());
+                    }
+                }
+            }.execute();
+        }
+    }
+
     private void handleAddFriend() {
         String email = view.getAddFriendNickname();
         if (email.trim().isEmpty()) {
             view.showError("Please enter a nickname to add.");
             return;
         }
+        AtomicReference<Exception> existingException = new AtomicReference<>(null);
         if (isAddFriendRunning.getAndSet(true)) return;
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
                 String token = authService.getCurrentToken();
-                apiService.addFriend(token, null, null, email);
+                try {
+                    apiService.addFriend(token, null, null, email);
+                }catch (Exception apiEx) {
+                //    view.showError(apiEx.getMessage());
+                    existingException.set(apiEx);
+                }
                 return null;
             }
 
@@ -548,9 +657,18 @@ public class MainPresenter {
             protected void done() {
                 try {
                     get(); // Check for exceptions
-                    view.showSuccess("Friend request sent to " + email + ".");
-                    view.clearAddFriendNickname();
-                } catch (InterruptedException | ExecutionException e) {
+                    if (existingException.get() != null) {
+                        view.showError(existingException.get().getMessage());
+                    }else {
+                        view.showSuccess("Friend request sent to " + email + ".");
+                        view.clearAddFriendNickname();
+                    }
+
+                }catch (ApiException apiEx) {
+                    String errorMessage = ErrorMessageTranslator.translate(apiEx);
+                    view.showError(errorMessage);
+                }
+                catch (InterruptedException | ExecutionException e) {
                     Throwable cause = e.getCause();
                     String errorMessage;
                     if (cause instanceof ApiException) {

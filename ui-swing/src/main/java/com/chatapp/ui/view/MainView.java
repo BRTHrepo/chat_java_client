@@ -116,7 +116,7 @@ private JTextPane chatArea;
         leftPanel.add(new JScrollPane(friendsList), BorderLayout.CENTER);
 
         JPanel addFriendPanel = new JPanel(new GridLayout(3, 1, 2, 2));
-        JLabel addFriendLabel = new JLabel("Email vagy felhasználónév:");
+        JLabel addFriendLabel = new JLabel("Email :");
         addFriendField = new JTextField();
         addFriendButton = new JButton("Add");
         addFriendPanel.add(addFriendLabel);
@@ -171,7 +171,7 @@ centerPanel.add(new JScrollPane(chatArea), BorderLayout.CENTER);
         friendRequestsList = new JList<>();
         rightPanel.add(new JScrollPane(friendRequestsList), BorderLayout.CENTER);
 
-        JPanel requestButtonsPanel = new JPanel(new FlowLayout());
+        JPanel requestButtonsPanel = new JPanel(new GridLayout(2, 1, 2, 2));
         acceptFriendRequestButton = new JButton("Accept");
         declineFriendRequestButton = new JButton("Decline");
         requestButtonsPanel.add(acceptFriendRequestButton);
@@ -283,7 +283,7 @@ public void setChatMessages(List<Message> messages) {
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 if (value instanceof User user) {
-                    label.setText(user.getEmail()); // vagy bármilyen formátum
+                    label.setText(user.getEmail());
                 }
                 return label;
             }

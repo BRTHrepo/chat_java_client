@@ -197,9 +197,7 @@ public class ApiService {
         executeRequest(request, null);
     }
 
-    // TODO: Implement separate endpoints or logic for accept/decline if needed
-    // For now, assuming 'action' parameter is sufficient for the server.
-    // If "Friend ID is required" error persists for accept, this might need adjustment.
+
 
 
     public List<User> getFriends(String token) {
