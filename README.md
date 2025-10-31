@@ -1,7 +1,6 @@
 # Chat Java Client
 
-Ez a dokumentum a Java kliensalkalmazás felépítését és a fejlesztési folyamat lépéseit vázolja fel a **Java Swing** és **Model-View-Presenter (MVP)** architektúra alapján.
-Ez a dokumentum a Java chat alkalmazás felhasználói szemszögből történő bemutatását tartalmazza.
+Ez a dokumentum a Chat Java Client alkalmazás felépítését, fő funkcióit és használatát mutatja be a **Java Swing** és **Model-View-Presenter (MVP)** architektúra alapján.
 
 ## Áttekintés
 
@@ -16,17 +15,18 @@ A Chat Java Client egy modern, platformfüggetlen asztali chat alkalmazás, amel
 Az alkalmazás célja, hogy egyszerű, átlátható felületen keresztül biztosítson valós idejű kommunikációt, miközben a felhasználói élmény és adatbiztonság elsődleges.
 
 ## Fő funkciók
+- Bejelentkezés email-címmel és jelszóval, automatikus tokenkezelés
+- Barátok hozzáadása, törlése, barátkérések elfogadása/elutasítása
+- Chat: szöveges üzenetek küldése, fogadása, státusz színezés
+- Profiladatok megtekintése, szerkesztése
+- Több klienspéldány támogatása, könyvtárfüggő beállítások
+- Automatikus adatmentés, offline működés
 
-## Javasolt Technológiai Készlet
-- **Bejelentkezés:**  
-  A felhasználó email-cím és jelszó megadásával jelentkezhet be. A rendszer automatikusan kezeli a tokeneket, így a bejelentkezés után a felhasználónak nem kell újra hitelesítenie magát, amíg a token érvényes.
-
-*   **Felhasználói felület (GUI):** **Java Swing** – A Java standard, platformfüggetlen GUI könyvtára.
-*   **HTTP Kommunikáció:** **OkHttp** – Hatékony és megbízható HTTP kliens.
-*   **JSON Feldolgozás:** **Gson** – Google könyvtár JSON szerializációhoz/deszerializációhoz.
-*   **Projektmenedzsment:** **Maven** – A projekt és függőségeinek kezelésére.
-- **Barátkezelés:**  
-  Barátok hozzáadása, törlése, barátkérések elfogadása/elutasítása. A barátlista mindig naprakész, a szerverrel automatikusan szinkronizálódik.
+## Javasolt technológiák
+- **Java Swing** – platformfüggetlen GUI
+- **OkHttp** – HTTP kliens
+- **Gson** – JSON feldolgozás
+- **Maven** – projektmenedzsment
 
 ## Architektúra: Model-View-Presenter (MVP)
 - **Chat:**  
@@ -149,7 +149,6 @@ Add meg az email-címed és jelszavad. Sikeres bejelentkezés után a főablak j
 - **Technikai háttér:** A MainView chatArea komponense JTextPane-re lett cserélve, StyledDocument-et használ, így támogatott a soronkénti színezés és formázás.
 ## Tipikus workflow
 
-*Megjegyzés: A kliensoldali tervdokumentáció (`docs/client/java-client-plan.md`) jelenleg nem található.*
 1. Indítsd el az alkalmazást.
 2. Jelentkezz be vagy regisztrálj.
 3. Adj hozzá barátokat, fogadj el barátkéréseket.
@@ -185,4 +184,28 @@ Ha hibát találsz vagy kérdésed van, írj a projekt fejlesztőinek vagy nyiss
 - [ui-swing/README.md](ui-swing/README.md) – Swing UI specifikus részletek
 - [core/README.md](core/README.md) – core modul, perzisztencia, DAO-k
 
+---
 
+## NetBeans használata GitHub Maven projekt esetén
+
+**GitHub repó klónozása NetBeans-ben**
+1. Nyisd meg a NetBeans IDE-t.
+2. A felső menüben válaszd a „Team” > „Git” > „Clone” opciót.
+3. Add meg a GitHub repó URL-jét, válassz helyi mappát, és klónozd le a projektet.
+
+**Projekt betöltése**
+- A klónozás után NetBeans automatikusan betölti a projektet, ha Maven alapú, felismeri a pom.xml-t.
+- A projekt megjelenik a Projektek panelen, az összes almodullal együtt.
+
+**Projekt buildelése NetBeans-ben**
+- Jobb kattintás a projekt vagy almodul nevére a Projektek panelen.
+- Válaszd a „Build” vagy „Clean and Build” opciót.
+- Maven lefordítja a forráskódot, kezeli a függőségeket és létrehozza a futtatható állományt.
+
+**Projekt indítása NetBeans-ben**
+- Ha több almodul van, válaszd ki a futtatható modult (pl. ui-swing).
+- Jobb klikk a modolon, válaszd a „Run” (Futtatás) parancsot.
+- Ha nincs automatikusan beállítva a fő osztály (main class), azt be kell állítani a projekt futtatási konfigurációjában.
+- A NetBeans elindítja az alkalmazást, például megnyílik a GUI vagy konzolos program indul el.
+
+Ez a folyamat egyszerűen lehetővé teszi, hogy GitHubról származó Maven projekteket NetBeans-ben olvass, buildelj és futtass, minimális kézi konfigurációval.
