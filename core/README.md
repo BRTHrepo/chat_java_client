@@ -2,7 +2,7 @@
 
 ## Résztvevők
 
-### Projektvezető: Bartha Szabolcs - O5XWGB
+### Projektvezető: Bartha Szabolcs Lajos - O5XWGB
 
 ### 1. Tag: Orbán Gábor - DRJE7Y
 
