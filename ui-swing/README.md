@@ -1,3 +1,11 @@
+## Résztvevők
+
+### Projektvezető: Bartha Szabolcs - O5XWGB
+
+### 1. Tag: Orbán Gábor - DRJE7Y
+
+### 2. Tag: Pataki György - K2WMGH
+
 # UI Swing Modul
 
 Ez a modul valósítja meg a chat kliens alkalmazás grafikus felhasználói felületét (GUI) a Java Swing keretrendszer segítségével. A modul a `core` modulra támaszkodik az üzleti logika és a szerverkommunikáció eléréséhez.
