@@ -2,6 +2,14 @@
 
 Ez a dokumentum a Chat Java Client alkalmazás felépítését, fő funkcióit és használatát mutatja be a **Java Swing** és **Model-View-Presenter (MVP)** architektúra alapján.
 
+## Résztvevők
+
+### Projektvezető: Bartha Szabolcs Lajos - O5XWGB
+
+### 1. Tag: Orbán Gábor - DRJE7Y
+
+### 2. Tag: Pataki György - K2WMGH
+
 ## Áttekintés
 
 A Chat Java Client egy modern, platformfüggetlen asztali chat alkalmazás, amely lehetővé teszi:
