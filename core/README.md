@@ -1,3 +1,13 @@
+# Java Chat Alkalmazás
+
+## Résztvevők
+
+### Projektvezető: Bartha Szabolcs - O5XWGB
+
+### 1. Tag: Orbán Gábor - DRJE7Y
+
+### 2. Tag: Pataki György - K2WMGH
+
 # Core Modul
 
 Ez a modul tartalmazza a chat kliens alkalmazás teljes üzleti logikáját és a szerverrel való kommunikációt. A tervezésének kulcsfontosságú szempontja, hogy teljesen független legyen bármilyen konkrét felhasználói felülettől (UI), így a logika könnyen újrahasznosítható más felületekkel is (pl. webes, mobil).
